@@ -372,6 +372,26 @@ class Composer:
             )
             current_duration = current_duration + next_duration - transition_duration
 
+        bgm_dir = Path.cwd() / "assets" / "bgm"
+        bgm_files = list(bgm_dir.glob("*.mp3")) + list(bgm_dir.glob("*.wav")) if bgm_dir.is_dir() else []
+        if bgm_files:
+            bgm_path = random.choice(bgm_files)
+            print(f"🎵 Mixing Background Music: {bgm_path.name} (Volume: 12%)")
+            bgm_input = (
+                ffmpeg.input(str(bgm_path), stream_loop=-1)
+                .audio
+                .filter("volume", 0.12)
+                .filter("atrim", duration=current_duration)
+                .filter("aresample", self.AUDIO_SAMPLE_RATE)
+                .filter(
+                    "aformat",
+                    sample_fmts="fltp",
+                    sample_rates=self.AUDIO_SAMPLE_RATE,
+                    channel_layouts="stereo",
+                )
+            )
+            audio_stream = ffmpeg.filter([audio_stream, bgm_input], "amix", inputs=2, duration="first")
+
         command = (
             ffmpeg
             .output(

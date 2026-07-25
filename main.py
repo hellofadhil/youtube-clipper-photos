@@ -69,12 +69,23 @@ async def main():
                 print("👋 Program dihentikan.")
                 return
 
-        # Display Topic & Script Preview to User
+        if isinstance(script, dict) and "scenes" in script:
+            metadata = script.get("metadata", {})
+            scenes = script.get("scenes", [])
+        else:
+            metadata = {}
+            scenes = script if isinstance(script, list) else []
+
+        # Display Topic, SEO Metadata & Script Preview to User
         print("\n" + "=" * 65)
         print(f"📌 TOPIK TERPILIH: {topic}")
+        if metadata:
+            print(f"🏷️ JUDUL VIRAL   : {metadata.get('title', '-')}")
+            print(f"📝 DESKRIPSI     : {metadata.get('description', '-')}")
+            print(f"3️⃣ HASHTAGS      : {metadata.get('hashtags', '-')}")
         print("=" * 65)
         print("📜 SKRIP & ANATOMI SCENE:")
-        for scene in script:
+        for scene in scenes:
             scene_id = scene.get("id", "-")
             mood = scene.get("mood", "N/A")
             text = scene.get("text", "")
@@ -109,24 +120,31 @@ async def main():
     # Render Pipeline
     audio_engine = AudioEngine()
     try:
-        script = await audio_engine.process_script(script)
+        scenes = await audio_engine.process_script(scenes)
     except Exception as error:
         print(f"❌ Audio Error: {error}")
         return
 
     try:
-        assets_map = AssetManager().get_videos(script)
+        assets_map = AssetManager().get_videos(scenes)
     except Exception as error:
         print(f"❌ Asset Error: {error}")
         return
 
     composer = Composer()
-    final_scene_paths = composer.render_all_scenes(script, assets_map)
+    final_scene_paths = composer.render_all_scenes(scenes, assets_map)
     if final_scene_paths:
         final_video = composer.concatenate_with_transitions(final_scene_paths)
         if final_video:
             clean_cache()
+            meta_path = os.path.join(os.path.dirname(final_video), "final_short_metadata.txt")
+            with open(meta_path, "w", encoding="utf-8") as f:
+                f.write(f"TOPIC: {topic}\n\n")
+                f.write(f"TITLE: {metadata.get('title', topic)}\n\n")
+                f.write(f"DESCRIPTION:\n{metadata.get('description', '')}\n\n")
+                f.write(f"HASHTAGS:\n{metadata.get('hashtags', '')}\n")
             print(f"\n🎉 VIDEO SELESAI DIBUAT: {final_video}")
+            print(f"📄 METADATA SEO TERSIMPAN: {meta_path}")
     else:
         print("❌ Failed to generate any scenes.")
 
