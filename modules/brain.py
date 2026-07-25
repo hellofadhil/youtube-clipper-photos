@@ -47,9 +47,11 @@ Create 7-8 fast-paced scenes following this proven retention structure:
 - Scene 5-6: Unexpected Twist or Revelation
 - Final Scene: Strong Outro / Punchline
 
-STRICT SCENE & VISUAL RULES:
-1. "text": Maximum 12-15 words per scene. Punchy, fast-paced narration with zero fluff.
-   CRITICAL FOR JSON: Do NOT use double quotes (") inside the text field to prevent JSON syntax errors. Use single quotes (') if quoting.
+STRICT SCRIPT & VISUAL RULES:
+1. "text": Maximum 12-15 words per scene. Punchy, fast-paced narration.
+   - CONCRETE DATA & NUMBERS: Include 2-3 real, specific data points or numbers across the script (e.g. exact depth in feet/meters, yield in kilotons, speed, temperature, or year). Real numbers create high educational authority.
+   - FACTUAL INTEGRITY: Do NOT invent fake ending claims, treaty violations, or historical lies. Limit dramatic hyperbole words ('monstrous', 'scariest', 'terrifying')—let the real mind-blowing facts drive the impact.
+   - CRITICAL FOR JSON: Do NOT use double quotes (") inside the text field to prevent JSON syntax errors. Use single quotes (') if quoting.
 2. "visual_1" & "visual_2": Must be 2 distinct stock video search queries for Pexels.
    CRITICAL FOR PEXELS API: Use ONLY 1-3 simple, literal, concrete search terms (e.g., "galaxy space", "ancient pyramid", "scared face close up", "neon city night"). NEVER use abstract, poetic, or complex metaphors.
 
