@@ -241,6 +241,11 @@ class Composer:
             stream_b = self._prepared_video_input(input_b)
             video_stream = ffmpeg.concat(stream_a, stream_b, v=1, a=0)
 
+            ass_path = scene.get("ass_path")
+            if ass_path and Path(ass_path).is_file():
+                escaped_ass = str(Path(ass_path).resolve()).replace("\\", "/").replace(":", "\\:")
+                video_stream = video_stream.filter("subtitles", filename=escaped_ass)
+
             input_audio = ffmpeg.input(str(audio_path))
             audio_stream = self._prepared_audio_input(input_audio)
 
