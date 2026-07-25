@@ -55,9 +55,9 @@ class AudioEngine:
 
     @staticmethod
     def create_ass_subtitles(
-        word_boundaries, ass_path, total_duration, text_fallback="", words_per_group=3
+        word_boundaries, ass_path, total_duration, text_fallback="", words_per_group=2
     ):
-        """Create a modern YouTube Shorts word-by-word highlighted ASS subtitle file."""
+        """Create a modern YouTube Shorts smart-highlight ASS subtitle file."""
         if not word_boundaries and text_fallback:
             words = text_fallback.strip().split()
             if words:
@@ -74,6 +74,13 @@ class AudioEngine:
         if not word_boundaries:
             return None
 
+        # Filter out common stop/filler words from yellow highlighting for a cinematic feel
+        STOP_WORDS = {
+            "A", "AN", "THE", "AND", "OR", "BUT", "IF", "IN", "ON", "AT",
+            "TO", "FOR", "WITH", "BY", "OF", "ITS", "IT", "IS", "WAS",
+            "ARE", "WERE", "THAT", "THIS", "AS", "SO", "THAN"
+        }
+
         header = (
             "[Script Info]\n"
             "ScriptType: v4.00+\n"
@@ -82,7 +89,7 @@ class AudioEngine:
             "ScaledBorderAndShadow: yes\n\n"
             "[V4+ Styles]\n"
             "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Encoding, MarginL, MarginR, MarginV, Alignment, Outline, Shadow\n"
-            "Style: Default,Arial,72,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,40,40,550,2,4,2\n\n"
+            "Style: Default,Arial,66,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,90,90,550,2,4,2\n\n"
             "[Events]\n"
             "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
         )
@@ -121,7 +128,8 @@ class AudioEngine:
                 formatted_words = []
                 for j, item in enumerate(chunk):
                     w_text = item["word"].upper().replace('"', "").replace("'", "")
-                    if j == i:
+                    # Highlight in bright yellow ONLY if it is the current word AND a key content word
+                    if j == i and w_text not in STOP_WORDS:
                         formatted_words.append(
                             f"{{\\c&H0000FFFF&}}{w_text}{{\\c&H00FFFFFF&}}"
                         )
