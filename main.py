@@ -1,6 +1,7 @@
 import asyncio
 import os
 import shutil
+import sys
 
 from modules.asset_manager import AssetManager
 from modules.audio import AudioEngine
