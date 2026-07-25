@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+assets/audio_clips/*
+assets/video_clips/*
+assets/temp/*
+assets/final/*
+!assets/**/.gitkeep

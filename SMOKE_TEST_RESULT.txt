@@ -1,0 +1,20 @@
+Composer smoke test: PASSED
+
+Synthetic input A:
+- 720x1280
+- 24 fps
+- SAR 1:1
+
+Synthetic input B:
+- 720x576
+- 25 fps
+- SAR 32:27
+
+Verified final output:
+- width=1080
+- height=1920
+- sample_aspect_ratio=1:1
+- pix_fmt=yuv420p
+- r_frame_rate=30/1
+
+The test rendered two A/B scenes and stitched them with xfade/acrossfade.
