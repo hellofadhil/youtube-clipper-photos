@@ -36,21 +36,76 @@ def clean_cache():
     print("✨ Workspace clean!")
 
 
+
+
+
 async def main():
-    print("🚀 STARTING AUTOMATION...")
+    print("🚀 STARTING AUTOMATION...\n")
 
+    auto_yes = "--yes" in sys.argv or "-y" in sys.argv
     brain = ContentBrain()
-    try:
-        topic = brain.get_trending_topic()
-        script = brain.generate_script(topic)
-    except Exception as error:
-        print(f"❌ Brain Error: {error}")
-        return
+    script = None
+    topic = None
 
-    if not script:
-        print("❌ Script generation failed.")
-        return
+    # Interactive Topic & Script Generation Loop
+    while True:
+        print("🧠 Creating Prompt & Generating Topic...")
+        try:
+            topic = brain.get_trending_topic()
+            script = brain.generate_script(topic)
+        except Exception as error:
+            print(f"❌ Brain Error: {error}")
+            return
 
+        if not script:
+            print("❌ Script generation failed.")
+            if auto_yes:
+                return
+            retry = input("\n🔄 Apakah kamu mau coba generate topik baru? (y/n): ").strip().lower()
+            if retry in ["y", "yes"]:
+                continue
+            else:
+                print("👋 Program dihentikan.")
+                return
+
+        # Display Topic & Script Preview to User
+        print("\n" + "=" * 65)
+        print(f"📌 TOPIK TERPILIH: {topic}")
+        print("=" * 65)
+        print("📜 SKRIP & ANATOMI SCENE:")
+        for scene in script:
+            scene_id = scene.get("id", "-")
+            mood = scene.get("mood", "N/A")
+            text = scene.get("text", "")
+            v1 = scene.get("visual_1", "-")
+            v2 = scene.get("visual_2", "-")
+            print(f"  [Scene {scene_id}] (Mood: {mood})")
+            print(f"   💬 Narasi  : \"{text}\"")
+            print(f"   🎬 Visual 1: {v1}")
+            print(f"   🎬 Visual 2: {v2}")
+            print("  " + "-" * 55)
+        print("=" * 65 + "\n")
+
+        if auto_yes:
+            print("⚡ Mode Non-Interaktif (--yes) terdeteksi. Melanjutkan proses pembuatan video...")
+            break
+
+        # Interactive Confirmation 1: Want to make this video?
+        confirm_video = input("❓ Apakah kamu ingin membuat video ini? (y/n): ").strip().lower()
+        if confirm_video in ["y", "yes"]:
+            print("\n🎬 Memulai proses pembuatan audio, visual, dan render video...")
+            break
+        else:
+            # Interactive Confirmation 2: Want to generate a new topic?
+            confirm_new_topic = input("🔄 Apakah kamu mau generate topik baru? (y/n): ").strip().lower()
+            if confirm_new_topic in ["y", "yes"]:
+                print("\n🔄 Generasi ulang topik baru...\n")
+                continue
+            else:
+                print("\n👋 Pembuatan video dibatalkan oleh pengguna. Sampai jumpa!")
+                return
+
+    # Render Pipeline
     audio_engine = AudioEngine()
     try:
         script = await audio_engine.process_script(script)
@@ -67,11 +122,14 @@ async def main():
     composer = Composer()
     final_scene_paths = composer.render_all_scenes(script, assets_map)
     if final_scene_paths:
-        composer.concatenate_with_transitions(final_scene_paths)
-        clean_cache()
+        final_video = composer.concatenate_with_transitions(final_scene_paths)
+        if final_video:
+            clean_cache()
+            print(f"\n🎉 VIDEO SELESAI DIBUAT: {final_video}")
     else:
         print("❌ Failed to generate any scenes.")
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+
