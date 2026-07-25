@@ -423,3 +423,44 @@ class Composer:
         except ffmpeg.Error as error:
             print(f"❌ Stitching Error: {self._error_text(error)}")
             return None
+
+    def generate_preview(
+        self,
+        input_video_path: str,
+        output_filename: str = "final_short_preview.mp4",
+    ) -> str | None:
+        """Generate an ultra-compressed 360x640 preview video (~1.5 MB) for low-bandwidth streaming in Colab."""
+        output_path = self.final_dir / output_filename
+        self._safe_unlink(output_path)
+
+        try:
+            print("⚡ Generating Ultra-Stream Low-Bandwidth Preview (~1.5 MB)...")
+            inp = ffmpeg.input(input_video_path)
+            video = (
+                inp.video
+                .filter("scale", 360, 640)
+                .filter("format", "yuv420p")
+            )
+            audio = inp.audio
+
+            command = (
+                ffmpeg
+                .output(
+                    video,
+                    audio,
+                    str(output_path),
+                    vcodec="libx264",
+                    acodec="aac",
+                    preset="ultrafast",
+                    crf=28,
+                    b="400k",
+                    movflags="+faststart",
+                )
+                .global_args("-hide_banner", "-loglevel", "error")
+            )
+            command.run(overwrite_output=True, capture_stdout=True, capture_stderr=True)
+            print(f"✅ PREVIEW GENERATED: {output_path}")
+            return str(output_path)
+        except Exception as error:
+            print(f"⚠️ Preview Generation Warning: {error}")
+            return None

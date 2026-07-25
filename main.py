@@ -40,6 +40,30 @@ def clean_cache():
 
 
 
+def render_colab_player(video_path: str):
+    """Render an embedded HTML5 video player in Google Colab output cell."""
+    try:
+        import base64
+        from IPython.display import HTML, display
+        if os.path.exists(video_path):
+            with open(video_path, "rb") as f:
+                video_b64 = base64.b64encode(f.read()).decode("utf-8")
+            html_code = f"""
+            <div style="text-align: center; margin: 20px 0;">
+                <p style="font-weight: bold; font-size: 16px; color: #4CAF50; margin-bottom: 10px;">
+                    🎬 NONTON LANGSUNG PREVIEW VIDEO (Hemat Kuota ~1.5 MB)
+                </p>
+                <video width="320" height="568" controls autoplay muted style="border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                    <source src="data:video/mp4;base64,{video_b64}" type="video/mp4">
+                    Browser Anda tidak mendukung HTML5 video.
+                </video>
+            </div>
+            """
+            display(HTML(html_code))
+    except Exception:
+        pass
+
+
 async def main():
     print("🚀 STARTING AUTOMATION...\n")
 
@@ -145,6 +169,11 @@ async def main():
                 f.write(f"HASHTAGS:\n{metadata.get('hashtags', '')}\n")
             print(f"\n🎉 VIDEO SELESAI DIBUAT: {final_video}")
             print(f"📄 METADATA SEO TERSIMPAN: {meta_path}")
+
+            # Generate low-bandwidth 1.5MB preview and display embedded HTML5 player in Colab
+            preview_video = composer.generate_preview(final_video)
+            if preview_video:
+                render_colab_player(preview_video)
     else:
         print("❌ Failed to generate any scenes.")
 
