@@ -18,14 +18,14 @@ class AssetManager:
         self.assets_dir = os.path.join(os.getcwd(), "assets", "video_clips")
         os.makedirs(self.assets_dir, exist_ok=True)
 
-    def search_video(self, query, duration_min=4):
-        """Search Pexels for a portrait video and return a download URL."""
+    def search_video(self, query, duration_min=3):
+        """Search Pexels for a top-rated, high-quality portrait video and return a download URL."""
         print(f"🔎 Searching Pexels for: '{query}'...")
         params = {
             "query": query,
-            "per_page": 5,
+            "per_page": 15,
             "orientation": "portrait",
-            "size": "medium",
+            "size": "large",
         }
         try:
             response = requests.get(
@@ -39,20 +39,37 @@ class AssetManager:
                 return None
 
             data = response.json()
-            if not data.get("videos"):
-                if " " in query:
-                    simple_query = query.split()[-1]
-                    print(f"⚠️ No results. Retrying with '{simple_query}'...")
-                    return self.search_video(simple_query)
+            videos = data.get("videos", [])
+
+            if not videos:
+                # If exact query fails, try cleaning short stop-words instead of stripping to last word
+                cleaned_words = [w for w in query.split() if len(w) > 3]
+                if cleaned_words and len(cleaned_words) < len(query.split()):
+                    cleaned_query = " ".join(cleaned_words)
+                    print(f"⚠️ Retrying Pexels with refined query: '{cleaned_query}'...")
+                    return self.search_video(cleaned_query, duration_min=duration_min)
                 return None
 
-            valid_videos = [
-                video for video in data["videos"] if video["duration"] >= duration_min
-            ] or data["videos"]
-            selected_video = random.choice(valid_videos)
-            video_files = selected_video["video_files"]
+            # 1. Filter videos with valid duration & native portrait aspect ratio (height >= width)
+            portrait_videos = [
+                v for v in videos
+                if v.get("duration", 0) >= duration_min and (v.get("height", 0) or 0) >= (v.get("width", 0) or 0)
+            ]
+            candidates = portrait_videos if portrait_videos else [
+                v for v in videos if v.get("duration", 0) >= duration_min
+            ] or videos
+
+            # 2. Pick strictly from the TOP 3 most relevant/popular results to ensure premium footage
+            top_candidates = candidates[:3]
+            selected_video = random.choice(top_candidates)
+
+            video_files = selected_video.get("video_files", [])
+            if not video_files:
+                return None
+
+            # 3. Select highest resolution file stream (HD/4K)
             video_files.sort(
-                key=lambda item: item["width"] * item["height"],
+                key=lambda item: (item.get("width", 0) or 0) * (item.get("height", 0) or 0),
                 reverse=True,
             )
             return video_files[0]["link"]
