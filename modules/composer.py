@@ -194,6 +194,7 @@ class Composer:
                 sample_rates=self.AUDIO_SAMPLE_RATE,
                 channel_layouts="stereo",
             )
+            .filter("loudnorm", I=-16, TP=-1.5, LRA=11)
             .filter("asetpts", "PTS-STARTPTS")
         )
 

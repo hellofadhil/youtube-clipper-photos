@@ -49,20 +49,23 @@ Create 7-8 fast-paced scenes following this proven retention structure:
 
 STRICT SCRIPT & VISUAL RULES:
 1. "text": Maximum 12-15 words per scene. Punchy, fast-paced narration.
+   - ANTI-CLICHÉ HOOK: DO NOT start Scene 1 with overused AI clichés like "What if I told you", "Did you know that", or "Have you ever wondered". Start Scene 1 IMMEDIATELY with a striking fact, year, or high-stakes event (e.g., "In 1958, America detonated a nuclear bomb underwater. The ocean hid what happened next.").
    - CONCRETE DATA & NUMBERS: Include 2-3 real, specific data points or numbers across the script (e.g. exact depth in feet/meters, yield in kilotons, speed, temperature, or year). Real numbers create high educational authority.
    - FACTUAL INTEGRITY: Do NOT invent fake ending claims, treaty violations, or historical lies. Limit dramatic hyperbole words ('monstrous', 'scariest', 'terrifying')—let the real mind-blowing facts drive the impact.
    - CRITICAL FOR JSON: Do NOT use double quotes (") inside the text field to prevent JSON syntax errors. Use single quotes (') if quoting.
 2. "visual_1" & "visual_2": Must be 2 distinct stock video search queries for Pexels.
-   CRITICAL FOR PEXELS API: Use ONLY 1-3 simple, literal, concrete search terms (e.g., "galaxy space", "ancient pyramid", "scared face close up", "neon city night"). NEVER use abstract, poetic, or complex metaphors.
+   - HIGH-IMPACT VISUAL HOOK: Scene 1 visual_1 MUST be an explosive/high-action visual (e.g., "water explosion", "stormy ocean waves", "nuclear explosion") to stop thumb-scrolling instantly.
+   - CONTEXT PRECISION: Be hyper-specific to prevent random stock footage (e.g., use "navy battleship ocean" instead of vague "military", use "underwater ocean depth" instead of "deep sea" to avoid aquariums or land explosions).
+   - CRITICAL FOR PEXELS API: Use ONLY 1-3 simple, literal, concrete search terms. NEVER use abstract, poetic, or complex metaphors.
 
 Return strict JSON array matching this exact few-shot example schema:
 [
   {{
     "id": 1,
-    "text": "What if I told you the moon is slowly drifting away from us?",
-    "visual_1": "full moon night",
-    "visual_2": "space galaxy",
-    "mood": "mysterious"
+    "text": "In 1969, a secret Soviet moon lander crashed just hours before Apollo 11.",
+    "visual_1": "rocket launch night",
+    "visual_2": "full moon space",
+    "mood": "shocking"
   }}
 ]
 """
