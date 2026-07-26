@@ -104,17 +104,29 @@ async def main():
         if category_key not in TOPIC_CATEGORIES:
             category_key = "1"
         custom_location = os.getenv("SCENERY_LOCATION", "").strip() or None
+        is_bgm_only = os.getenv("AUDIO_MODE", "1").strip() == "2"
     else:
         category_key = display_category_menu()
         custom_location = None
-        if TOPIC_CATEGORIES[category_key]["mode"] == "scenery":
+        is_bgm_only = False
+
+        selected_category = TOPIC_CATEGORIES[category_key]
+
+        if selected_category["mode"] in ["scenery", "custom"]:
             loc = input(
-                "📍 Masukkan topik custom kamu (misal: 'How AI works', 'Become an Astronaut', 'Paris at Sunset', dll — kosongkan untuk acak): "
+                "📍 Masukkan topik custom kamu (misal: 'How AI works', 'Become an Astronaut', 'Paris', dll — kosongkan untuk acak): "
             ).strip()
             custom_location = loc if loc else None
 
+            print("\n" + "─" * 55)
+            print("🔊 PILIH MODUS AUDIO:")
+            print("  [1] 🎙️  Narasi Suara AI + Subtitle Teks + BGM (Standard Edutainment)")
+            print("  [2] 🎵  BGM Only (Visual Sinematik saja, Tanpa Narasi/Subtitle)")
+            print("─" * 55)
+            audio_choice = input("➡️  Masukkan pilihan modus (1 atau 2, default: 1): ").strip()
+            is_bgm_only = audio_choice == "2"
+
     selected_category = TOPIC_CATEGORIES[category_key]
-    is_bgm_only = selected_category["mode"] == "scenery"
 
     # ── Interactive Topic & Script Generation Loop ───────────────────────────────────
     while True:
@@ -125,16 +137,20 @@ async def main():
                 custom_location=custom_location,
             )
 
-            # For scenery mode: discover iconic landmarks BEFORE script generation
+            force_mode = "scenery" if is_bgm_only else "edutainment"
+            bgm_mood = brain.get_bgm_mood(topic)
+
             if is_bgm_only:
-                bgm_mood = brain.get_bgm_mood(topic)
                 print(f"🎵 BGM Mood matched: '{bgm_mood}'")
-                landmarks = brain.get_location_landmarks(topic)
+                landmarks = brain.get_topic_anchors(topic)
+            else:
+                landmarks = []
 
             script = brain.generate_script(
                 topic,
                 category_key=category_key,
                 landmarks=landmarks if is_bgm_only else None,
+                force_mode=force_mode,
             )
         except Exception as error:
             print(f"❌ Brain Error: {error}")

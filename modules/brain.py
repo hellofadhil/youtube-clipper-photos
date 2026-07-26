@@ -665,13 +665,11 @@ TOPIC_CATEGORIES = {
 }""",
     },
     "9": {
-        "name": "🎨 Custom Topic (BGM Only)",
-        "description": "Bebas tentukan topik apa saja (misal: 'How AI works', 'Become an Astronaut', 'Paris', dll) — BGM only",
-        "mode": "scenery",
+        "name": "🎨 Custom Topic",
+        "description": "Bebas tentukan topik/lokasi apa saja (misal: 'How AI works', 'Become an Astronaut', 'Paris', dll)",
+        "mode": "custom",
         "topic_prompt": (
-            "Give me 1 visually stunning, highly engaging concept or destination for a visual YouTube Short (BGM only). "
-            "It can be a world-famous location (e.g. 'Paris at Sunset'), a futuristic tech journey (e.g. 'How AI Robotics Works'), "
-            "an inspiring career path (e.g. 'Becoming a NASA Astronaut'), or an extreme nature event. "
+            "Give me 1 highly engaging, viral topic or destination for a YouTube Short. "
             "Return ONLY the topic title. No quotes, no commentary."
         ),
         "visual_guide": (
@@ -867,11 +865,14 @@ class ContentBrain:
     get_location_landmarks = get_topic_anchors
 
     def generate_script(self, topic: str, category_key: str = "1",
-                        landmarks: list[str] | None = None, **kwargs):
+                        landmarks: list[str] | None = None,
+                        force_mode: str | None = None, **kwargs):
         """Generate a full script + SEO metadata, then sanitize visual queries."""
         print(f"Writing script for: {topic}...")
         category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
-        mode = category["mode"]
+        mode = force_mode or category.get("mode", "edutainment")
+        if mode == "custom":
+            mode = "edutainment"  # Default for custom category if not specified
 
         if mode == "scenery":
             script = self._generate_scenery_script(topic, category, landmarks or [])
