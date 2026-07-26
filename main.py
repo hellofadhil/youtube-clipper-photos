@@ -231,16 +231,24 @@ async def main():
         )
         if final_video:
             clean_cache()
-            meta_path = os.path.join(os.path.dirname(final_video), "final_short_metadata.txt")
-            with open(meta_path, "w", encoding="utf-8") as f:
-                f.write(f"TOPIC: {topic}\n\n")
-                f.write(f"CATEGORY: {selected_category['name']}\n\n")
-                f.write(f"AUDIO MODE: {'BGM Only' if is_bgm_only else 'Voice + BGM'}\n\n")
-                f.write(f"TITLE: {metadata.get('title', topic)}\n\n")
-                f.write(f"DESCRIPTION:\n{metadata.get('description', '')}\n\n")
-                f.write(f"HASHTAGS:\n{metadata.get('hashtags', '')}\n")
+            meta_paths = [
+                os.path.join(os.path.dirname(final_video), "final_short_metadata.txt"),
+                os.path.join(os.getcwd(), "final_short_metadata.txt"),
+            ]
+            content = (
+                f"TOPIC: {topic}\n\n"
+                f"CATEGORY: {selected_category['name']}\n\n"
+                f"AUDIO MODE: {'BGM Only' if is_bgm_only else 'Voice + BGM'}\n\n"
+                f"TITLE: {metadata.get('title', topic)}\n\n"
+                f"DESCRIPTION:\n{metadata.get('description', '')}\n\n"
+                f"HASHTAGS:\n{metadata.get('hashtags', '')}\n"
+            )
+            for meta_path in meta_paths:
+                os.makedirs(os.path.dirname(meta_path), exist_ok=True)
+                with open(meta_path, "w", encoding="utf-8") as f:
+                    f.write(content)
             print(f"\n🎉 VIDEO SELESAI DIBUAT: {final_video}")
-            print(f"📄 METADATA SEO TERSIMPAN: {meta_path}")
+            print(f"📄 METADATA SEO TERSIMPAN: {meta_paths[0]}")
 
             # Generate low-bandwidth 1.5MB preview and display embedded HTML5 player in Colab
             preview_video = composer.generate_preview(final_video)
