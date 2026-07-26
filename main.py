@@ -5,7 +5,7 @@ import sys
 
 from modules.asset_manager import AssetManager
 from modules.audio import AudioEngine
-from modules.brain import ContentBrain, TOPIC_CATEGORIES
+from modules.brain import ContentBrain, TOPIC_CATEGORIES, get_bgm_mood
 from modules.composer import Composer
 
 
@@ -86,11 +86,11 @@ async def main():
     brain = ContentBrain()
     script = None
     topic = None
+    landmarks: list[str] = []
+    bgm_mood: str | None = None
 
     # ── Category selection ──────────────────────────────────────────────────
     if auto_yes:
-        # In non-interactive mode default to category 1 (Dark History)
-        # or allow override via env var CONTENT_CATEGORY (e.g. "9" for Scenery)
         category_key = os.getenv("CONTENT_CATEGORY", "1")
         if category_key not in TOPIC_CATEGORIES:
             category_key = "1"
@@ -107,7 +107,7 @@ async def main():
     selected_category = TOPIC_CATEGORIES[category_key]
     is_bgm_only = selected_category["mode"] == "scenery"
 
-    # ── Interactive Topic & Script Generation Loop ───────────────────────────
+    # ── Interactive Topic & Script Generation Loop ───────────────────────────────────
     while True:
         print("🧠 Creating Prompt & Generating Topic...")
         try:
@@ -115,7 +115,18 @@ async def main():
                 category_key=category_key,
                 custom_location=custom_location,
             )
-            script = brain.generate_script(topic, category_key=category_key)
+
+            # For scenery mode: discover iconic landmarks BEFORE script generation
+            if is_bgm_only:
+                bgm_mood = get_bgm_mood(topic)
+                print(f"🎵 BGM Mood matched: '{bgm_mood}'")
+                landmarks = brain.get_location_landmarks(topic)
+
+            script = brain.generate_script(
+                topic,
+                category_key=category_key,
+                landmarks=landmarks if is_bgm_only else None,
+            )
         except Exception as error:
             print(f"❌ Brain Error: {error}")
             return
@@ -144,6 +155,10 @@ async def main():
         print(f"🎭 MODE           : {selected_category['name']}")
         if is_bgm_only:
             print("🎵 AUDIO MODE    : Background Music Only (No Voice / No Subtitle)")
+            if bgm_mood:
+                print(f"🎶 BGM GENRE     : {bgm_mood.upper()}")
+            if landmarks:
+                print(f"📍 LANDMARKS     : {', '.join(landmarks[:5])}{'...' if len(landmarks) > 5 else ''}")
         if metadata:
             print(f"🏷️  JUDUL VIRAL   : {metadata.get('title', '-')}")
             print(f"📝 DESKRIPSI     : {metadata.get('description', '-')}")
@@ -185,6 +200,8 @@ async def main():
                         "📍 Masukkan nama lokasi baru (kosongkan untuk acak dari AI): "
                     ).strip()
                     custom_location = loc if loc else None
+                    landmarks = []  # reset so landmarks are re-fetched for new location
+                    bgm_mood = None
                 print("\n🔄 Generasi ulang topik baru...\n")
                 continue
             else:
@@ -208,7 +225,10 @@ async def main():
     composer = Composer()
     final_scene_paths = composer.render_all_scenes(scenes, assets_map)
     if final_scene_paths:
-        final_video = composer.concatenate_with_transitions(final_scene_paths)
+        final_video = composer.concatenate_with_transitions(
+            final_scene_paths,
+            bgm_mood=bgm_mood,
+        )
         if final_video:
             clean_cache()
             meta_path = os.path.join(os.path.dirname(final_video), "final_short_metadata.txt")

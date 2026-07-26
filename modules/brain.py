@@ -748,6 +748,60 @@ def _get_client():
     return genai.Client(api_key=api_key)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# BGM Mood Auto-Matching — map destination vibes to music genres
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Maps destination keywords (lowercase) → BGM subfolder name
+_BGM_DESTINATION_MAP: dict[str, str] = {
+    # 🎹 Cinematic Orchestral — classic European cities
+    "paris": "cinematic", "rome": "cinematic", "london": "cinematic",
+    "vienna": "cinematic", "prague": "cinematic", "florence": "cinematic",
+    "barcelona": "cinematic", "amsterdam": "cinematic", "venice": "cinematic",
+    "budapest": "cinematic", "athens": "cinematic",
+    # 🎸 Lo-fi / Chillhop — East Asian cities
+    "tokyo": "lofi", "kyoto": "lofi", "osaka": "lofi",
+    "seoul": "lofi", "taipei": "lofi", "busan": "lofi",
+    # 🌴 Tropical / Bossa Nova — tropical & beach destinations
+    "bali": "tropical", "hawaii": "tropical", "phuket": "tropical",
+    "maldives": "tropical", "lombok": "tropical", "raja ampat": "tropical",
+    "bohol": "tropical", "palawan": "tropical", "cancun": "tropical",
+    "koh samui": "tropical", "pattaya": "tropical",
+    # 🎵 Electronic / Synthwave — modern megacities & nightscapes
+    "dubai": "electronic", "new york": "electronic", "singapore": "electronic",
+    "hong kong": "electronic", "shanghai": "electronic", "las vegas": "electronic",
+    "miami": "electronic", "sydney": "electronic", "chicago": "electronic",
+    # 🎻 Ambient / Atmospheric — dramatic nature & wilderness
+    "patagonia": "ambient", "iceland": "ambient", "norway": "ambient",
+    "alaska": "ambient", "tibet": "ambient", "himalayas": "ambient",
+    "new zealand": "ambient", "fjord": "ambient", "faroe": "ambient",
+    # 🎸 Acoustic Guitar — Mediterranean & countryside
+    "santorini": "acoustic", "amalfi": "acoustic", "tuscany": "acoustic",
+    "mykonos": "acoustic", "capri": "acoustic", "positano": "acoustic",
+    "scotland": "acoustic", "ireland": "acoustic", "portugal": "acoustic",
+    # 🥁 World / Cultural — Middle East, Africa, South Asia
+    "istanbul": "cultural", "marrakech": "cultural", "cairo": "cultural",
+    "mumbai": "cultural", "delhi": "cultural", "jaipur": "cultural",
+    "petra": "cultural", "jerusalem": "cultural", "casablanca": "cultural",
+    # 🌿 Indonesian cities — tropical + cultural fusion
+    "jakarta": "tropical", "yogyakarta": "cultural", "bandung": "tropical",
+    "surabaya": "tropical", "medan": "tropical", "makassar": "tropical",
+    "manado": "tropical", "komodo": "ambient", "flores": "ambient",
+}
+
+# Fallback mood if destination not in map
+_BGM_DEFAULT_MOOD = "cinematic"
+
+
+def get_bgm_mood(topic: str) -> str:
+    """Return the recommended BGM mood/subfolder name for a destination."""
+    topic_lower = topic.lower()
+    for keyword, mood in _BGM_DESTINATION_MAP.items():
+        if keyword in topic_lower:
+            return mood
+    return _BGM_DEFAULT_MOOD
+
+
 class ContentBrain:
     def get_trending_topic(self, category_key: str = "1", custom_location: str = None):
         """Generate a topic based on the selected category."""
@@ -769,14 +823,54 @@ class ContentBrain:
         print(f"Selected Topic: {topic}")
         return topic
 
-    def generate_script(self, topic: str, category_key: str = "1"):
+    def get_location_landmarks(self, location: str) -> list[str]:
+        """Discover 10 distinct, filmable iconic landmarks/spots for a given city.
+
+        Returns a list of specific named places (mix of monuments, neighborhoods,
+        nature spots, markets, viewpoints) to be used as unique per-scene anchors.
+        """
+        print(f"🗺️  Discovering iconic spots in: {location}...")
+        prompt = (
+            f"You are a professional travel filmmaker planning a cinematic short video about {location}.\n"
+            f"List exactly 10 distinct, visually iconic, and FILMABLE locations or landmarks in {location}.\n"
+            "Rules:\n"
+            "- Each must be a SPECIFIC NAMED PLACE (not a generic description like 'a park' or 'a market').\n"
+            "- Include a variety: iconic monuments, historic neighborhoods, natural scenery, "
+            "modern skyline spots, cultural/food markets, waterfront/viewpoints.\n"
+            "- Prioritize places that have abundant stock footage on Pexels (famous, well-known spots).\n"
+            "- Return ONLY a JSON array of 10 strings. No explanation, no commentary.\n"
+            f"Example for Paris: [\"Eiffel Tower\", \"Montmartre\", \"Seine River\", "
+            f"\"Louvre Museum\", \"Champs-Elysées\", \"Notre-Dame Cathedral\", "
+            f"\"Palais Royal Garden\", \"Sacré-Cœur\", \"Marais District\", \"Arc de Triomphe\"]\n"
+            f"Now list 10 for: {location}"
+        )
+        client = _get_client()
+        try:
+            response = client.models.generate_content(
+                model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.5,
+                ),
+            )
+            landmarks = json.loads(response.text.strip())
+            if isinstance(landmarks, list) and landmarks:
+                print(f"  ✅ Found {len(landmarks)} iconic spots: {', '.join(landmarks)}")
+                return landmarks
+        except Exception as error:
+            print(f"  ⚠️  Landmark discovery failed: {error}. Using generic scenery approach.")
+        return []
+
+    def generate_script(self, topic: str, category_key: str = "1",
+                        landmarks: list[str] | None = None):
         """Generate a full script + SEO metadata, then sanitize visual queries."""
         print(f"Writing script for: {topic}...")
         category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
         mode = category["mode"]
 
         if mode == "scenery":
-            script = self._generate_scenery_script(topic, category)
+            script = self._generate_scenery_script(topic, category, landmarks or [])
         else:
             script = self._generate_edutainment_script(topic, category)
 
@@ -849,44 +943,67 @@ Follow ALL rules above. Return ONLY valid JSON. No markdown. No commentary outsi
 """
         return self._call_gemini(prompt)
 
-    def _generate_scenery_script(self, topic: str, category: dict):
-        """Generate a BGM-only scenery script — no narration text, rich visuals only."""
+    def _generate_scenery_script(self, topic: str, category: dict,
+                                  landmarks: list[str]):
+        """Generate a BGM-only scenery script anchored to per-scene unique landmarks."""
         visual_guide = category.get("visual_guide", "")
         few_shot = category.get("few_shot_example", "")
 
+        # Build landmark assignment block
+        if landmarks:
+            # Ensure we have exactly 8 landmark slots (repeat last if < 8)
+            while len(landmarks) < 8:
+                landmarks.append(landmarks[-1])
+            landmark_block = (
+                "LANDMARK ASSIGNMENT (CRITICAL — each scene MUST use its assigned landmark):\n"
+                + "\n".join(
+                    f"  Scene {i + 1}: Focus on '{landmarks[i]}'"
+                    for i in range(8)
+                )
+                + "\n\nEach scene's visual_1 and visual_2 MUST contain the assigned landmark name "
+                  "combined with a specific shot type or lighting condition."
+            )
+        else:
+            landmark_block = (
+                "No specific landmarks provided — choose 8 distinct iconic spots for this destination "
+                "and assign one unique spot per scene."
+            )
+
         prompt = f"""
 You are a world-class travel cinematographer and YouTube SEO expert.
-Destination / Topic: {topic}
+Destination: {topic}
 Create a CINEMATIC SCENERY YouTube Short — BGM only, no voice narration, exactly 8 scenes.
 
 ══════════════════════════════════════════════════
-STRICT BGM-ONLY SCENERY RULES
+{landmark_block}
 ══════════════════════════════════════════════════
+
+STRICT BGM-ONLY SCENERY RULES:
 1. "text": MUST be an empty string "" for EVERY scene. No exceptions.
 
 2. VISUAL QUERY RULES (CRITICAL):
    - "visual_1" & "visual_2": 2 DISTINCT, Pexels-ready queries per scene.
-   - Use ONLY 2-4 literal concrete English words (landmark + shot type + lighting).
-   - BANNED WORDS — NEVER use alone: 'beautiful', 'stunning', 'scenery', 'travel',
-     'amazing', 'wanderlust', 'tourism', 'vacation', 'breathtaking', 'wonderful'.
-   - ANTI-REPEAT: Every single query across all 8 scenes must be UNIQUE (16 unique queries total).
-   - Include the DESTINATION NAME in at least 4 of the 16 queries.
+   - Each query = [LANDMARK NAME] + [SHOT TYPE] + [optional LIGHTING].
+   - BANNED WORDS (never alone): 'beautiful', 'stunning', 'scenery', 'travel',
+     'amazing', 'wanderlust', 'tourism', 'vacation', 'breathtaking'.
+   - ANTI-REPEAT: All 16 queries across 8 scenes MUST be completely unique strings.
 
-3. MANDATORY SHOT TYPE MIX (2 scenes each):
-   - AERIAL shots: overhead drone view of city/landscape
-   - LANDMARK shots: iconic building or monument close/medium
-   - STREET/LIFE shots: street level, people, markets, cafes
-   - NATURE DETAIL shots: texture, light, flowers, water, sky
+3. SHOT TYPE VARIETY (spread across 8 scenes):
+   - aerial / drone view
+   - landmark exterior / facade
+   - street level / pedestrian
+   - interior / market / culture
+   - water / nature detail
+   - night / dusk / golden hour
 
-4. MANDATORY TIME-OF-DAY VARIETY:
-   Include across 8 scenes: at least 1x sunrise, 2x golden hour, 1x night.
+4. TIME-OF-DAY SPREAD: Include across 8 scenes — 1x sunrise, 2x golden hour, 1x night.
 
-5. "mood": One of: cinematic, peaceful, majestic, golden, dreamy, vibrant, serene, breathtaking.
+5. "mood": One of: cinematic, peaceful, majestic, golden, dreamy, vibrant, serene.
 
 6. METADATA:
    - "title": Wanderlust title with 1-2 emojis, under 60 chars.
-   - "description": 2-3 vivid, travel-inspiring sentences.
-   - "hashtags": Exactly 5 hashtags including the destination name.
+   - "description": 2-3 vivid sentences that paint a picture of the destination.
+   - "hashtags": Exactly 5 hashtags including destination name.
 
 ══════════════════════════════════════════════════
 CATEGORY-SPECIFIC VISUAL GUIDE:
@@ -894,11 +1011,11 @@ CATEGORY-SPECIFIC VISUAL GUIDE:
 {visual_guide}
 
 ══════════════════════════════════════════════════
-FEW-SHOT EXAMPLE — match this JSON schema exactly:
+FEW-SHOT EXAMPLE (schema reference only — use your assigned landmarks above):
 ══════════════════════════════════════════════════
 {few_shot}
 
-Now generate the FULL 8-scene script for: "{topic}"
+Generate the FULL 8-scene script for: "{topic}"
 Return ONLY valid JSON. No markdown. No commentary outside JSON.
 """
         return self._call_gemini(prompt)

@@ -340,8 +340,17 @@ class Composer:
         self,
         video_paths: Sequence[str],
         output_filename: str = "final_short.mp4",
+        bgm_mood: str | None = None,
     ) -> str | None:
-        """Stitch normalized scenes using xfade/acrossfade safely."""
+        """Stitch normalized scenes using xfade/acrossfade safely.
+
+        Args:
+            video_paths: Ordered list of rendered scene MP4 paths.
+            output_filename: Name of the output file inside assets/final/.
+            bgm_mood: Optional BGM genre subfolder name (e.g. 'cinematic', 'lofi',
+                      'tropical'). When provided the composer looks in
+                      assets/bgm/{bgm_mood}/ first, then falls back to assets/bgm/.
+        """
         print("🎞️ Stitching final video...")
         output_path = self.final_dir / output_filename
         self._safe_unlink(output_path)
@@ -398,11 +407,26 @@ class Composer:
             )
             current_duration = current_duration + next_duration - transition_duration
 
+        # ── BGM selection: mood subfolder → root fallback ─────────────────────
         bgm_dir = Path.cwd() / "assets" / "bgm"
-        bgm_files = list(bgm_dir.glob("*.mp3")) + list(bgm_dir.glob("*.wav")) if bgm_dir.is_dir() else []
+        bgm_files: list[Path] = []
+
+        if bgm_mood:
+            mood_dir = bgm_dir / bgm_mood
+            if mood_dir.is_dir():
+                bgm_files = list(mood_dir.glob("*.mp3")) + list(mood_dir.glob("*.wav"))
+                if bgm_files:
+                    print(f"🎵 BGM Mood: '{bgm_mood}' — found {len(bgm_files)} track(s) in {mood_dir.name}/")
+
+        if not bgm_files and bgm_dir.is_dir():
+            # Root fallback: any mp3/wav directly inside assets/bgm/
+            bgm_files = list(bgm_dir.glob("*.mp3")) + list(bgm_dir.glob("*.wav"))
+            if bgm_files:
+                print(f"🎵 BGM Mood fallback: using root assets/bgm/ ({len(bgm_files)} track(s))")
+
         if bgm_files:
             bgm_path = random.choice(bgm_files)
-            print(f"🎵 Mixing Background Music: {bgm_path.name} (Volume: 12%)")
+            print(f"🎵 Mixing BGM: {bgm_path.name} (Volume: 12%)")
             bgm_input = (
                 ffmpeg.input(str(bgm_path), stream_loop=-1)
                 .audio
@@ -417,6 +441,8 @@ class Composer:
                 )
             )
             audio_stream = ffmpeg.filter([audio_stream, bgm_input], "amix", inputs=2, duration="first")
+        else:
+            print("⚠️ No BGM files found. Add .mp3/.wav files to assets/bgm/ or assets/bgm/{mood}/ to enable background music.")
 
         command = (
             ffmpeg
