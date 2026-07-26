@@ -807,15 +807,13 @@ class ContentBrain:
         return get_bgm_mood(topic)
 
     def get_trending_topic(self, category_key: str = "1", custom_location: str = None):
-        """Generate a topic based on the selected category."""
-        category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
-        mode = category["mode"]
-
-        if mode == "scenery" and custom_location:
+        """Generate a topic based on the selected category, or use custom_location if provided."""
+        if custom_location and custom_location.strip():
             topic = custom_location.strip()
             print(f"Selected Topic: {topic}")
             return topic
 
+        category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
         prompt = category["topic_prompt"]
         client = _get_client()
         response = client.models.generate_content(
