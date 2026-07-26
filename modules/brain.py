@@ -21,92 +21,50 @@ _ABSTRACT_TERMS = frozenset([
     "creepy", "glowing", "haunted", "supernatural", "cosmic", "infinite",
     "eternal", "beyond", "ancient", "lost", "hidden", "secret",
     "forbidden", "cursed", "epic", "stunning", "beautiful", "amazing",
+    "incredible",
 ])
+
+# Context-aware negative terms per category to prevent emotionally/scientifically conflicting stock
+CATEGORY_NEGATIVE_TERMS: dict[str, set[str]] = {
+    "1": {"smiling", "party", "vacation"},  # Dark History
+    "2": {"magic", "fantasy"},  # Mind-Blowing Science
+    "3": {"alien costume", "toy rocket"},  # Deep Space
+    "4": {"ghost costume", "halloween"},  # Unexplained Mysteries
+    "5": {"surfer", "surfing", "vacation", "resort"},  # Ocean Secrets
+    "6": {"modern city", "traffic"},  # Lost Civilizations
+    "7": {"toy robot", "sci fi costume"},  # Future Tech
+    "8": {"surfer", "surfing", "tourist", "tourism", "vacation", "calm beach", "smiling"},  # Extreme Nature
+}
+
+# Misleading terms for specific scientific topics (e.g., compass when discussing Earth axis / rotation shift)
+_MISLEADING_TOPIC_TERMS = {
+    "axis": {"compass", "magnetic field"},
+    "rotation": {"compass", "clock gears"},
+}
 
 # Minimum number of NON-abstract concrete words required in a query
 _MIN_CONCRETE_WORDS = 1
 
-# Per-category fallback pools — used when a query is too abstract
-_VISUAL_FALLBACK_POOLS: dict[str, list[str]] = {
-    "1": [  # Dark History
-        "battlefield soldiers smoke", "nuclear explosion black white",
-        "classified documents desk lamp", "old newspaper archive",
-        "army march soldiers", "warship ocean", "prison cell corridor",
-        "war memorial grave", "military uniform soldier", "ruins abandoned building",
-        "protest crowd street", "government building exterior", "barbed wire fence",
-    ],
-    "2": [  # Mind-Blowing Science
-        "cell division microscope closeup", "lightning strike slow motion",
-        "lava flow rock close", "brain MRI scan hospital",
-        "laser beam laboratory blue", "DNA model laboratory",
-        "chemical reaction colored liquid", "neurons brain anatomy model",
-        "microscope macro science", "blood cells microscope",
-        "scientist laboratory coat", "telescope observatory night",
-    ],
-    "3": [  # Deep Space
-        "galaxy spiral stars", "star cluster nebula purple",
-        "moon surface crater", "rocket launch fire",
-        "astronaut spacewalk", "Earth from orbit blue",
-        "comet tail space", "meteor shower night sky",
-        "telescope observatory dome", "space station interior",
-        "sun solar flare orange", "planet surface barren",
-    ],
-    "4": [  # Unexplained Mysteries
-        "storm lightning dark sea", "fog forest road",
-        "abandoned ship deck rusted", "radio telescope antenna",
-        "stone monument circle field", "dense jungle trees",
-        "dark corridor empty hallway", "old lighthouse sea",
-        "empty desert road", "cave entrance dark",
-        "shipwreck underwater coral", "satellite dish sky",
-    ],
-    "5": [  # Ocean Secrets
-        "deep sea fish underwater", "jellyfish underwater dark blue",
-        "coral reef ocean colorful", "ocean waves surface aerial",
-        "submarine underwater vessel", "scuba diver ocean reef",
-        "whale diving ocean", "shark swimming ocean",
-        "ocean floor sand", "underwater cave light rays",
-        "sea turtle swimming ocean", "bioluminescent water night",
-    ],
-    "6": [  # Lost Civilizations
-        "pyramid Egypt aerial sand", "ancient temple stone ruins",
-        "stone carving wall relief", "archaeological excavation site",
-        "jungle overgrown temple", "ancient columns marble",
-        "stone circle field sunset", "cave painting prehistoric",
-        "stone wall ancient construction", "archaeological artifacts clay",
-        "ancient city ruins aerial", "sphinx Egypt desert",
-    ],
-    "7": [  # Future Technology
-        "robot arm factory assembly", "computer screen code dark room",
-        "brain MRI scan medical", "server room blue lights",
-        "electric car charging station", "drone flight aerial city",
-        "laboratory microscope scientist", "solar panel field sky",
-        "3D printer technology", "humanoid robot machine",
-        "data center corridor lights", "laptop screen programmer",
-    ],
-    "8": [  # Extreme Nature
-        "volcanic eruption lava close", "tornado funnel road field",
-        "lightning strike storm night", "ocean wave surfer large",
-        "earthquake cracked ground", "flood city water street",
-        "hurricane aerial storm", "avalanche snow mountain",
-        "wildfire forest flames", "lion hunting prey",
-        "eagle diving catch fish", "wolf pack snow forest",
-    ],
-    "9": [  # Travel Scenery
-        "city aerial skyline sunset", "mountain landscape snow peak",
-        "beach ocean waves shore", "forest trees sunlight rays",
-        "waterfall nature green", "cherry blossom tree pink",
-        "river reflection sunset", "coastal cliff ocean",
-        "rice terrace aerial green", "lake mountain reflection",
-        "cobblestone street evening", "flower field aerial",
-    ],
-}
 
-
-def _is_abstract_query(query: str) -> bool:
-    """Return True if the query is too abstract for Pexels to handle reliably."""
-    words = re.findall(r"[a-z]+", query.lower())
+def _is_abstract_query(query: str, category_key: str = "1") -> bool:
+    """Return True if the query is too abstract, Pexels-unfriendly, or contextually negative."""
+    query_lower = query.lower()
+    words = re.findall(r"[a-z]+", query_lower)
     if not words:
         return True
+
+    # Check category-specific negative terms
+    category_negatives = CATEGORY_NEGATIVE_TERMS.get(category_key, set())
+    for word in words:
+        if word in category_negatives:
+            return True
+
+    # Check contextually misleading terms (e.g. compass for Earth axis)
+    if "axis" in query_lower:
+        for term in _MISLEADING_TOPIC_TERMS["axis"]:
+            if term in query_lower:
+                return True
+
     concrete_words = [w for w in words if w not in _ABSTRACT_TERMS and len(w) > 2]
     return len(concrete_words) < _MIN_CONCRETE_WORDS
 
@@ -151,14 +109,14 @@ def _sanitize_visual_queries(script: dict, category_key: str) -> dict:
                 print(f"  🔧 Scene {scene.get('id','?')} {key}: (empty) → '{replacement}'")
                 continue
 
-            needs_replace = _is_abstract_query(original) or original in seen_queries
+            needs_replace = _is_abstract_query(original, category_key=category_key) or original in seen_queries
             if needs_replace:
                 replacement = next_fallback(seen_queries | scene_used)
                 scene[key] = replacement
                 scene_used.add(replacement)
                 seen_queries.add(replacement)
                 replaced_count += 1
-                reason = "duplicate" if original in seen_queries else "abstract"
+                reason = "duplicate" if original in seen_queries else "abstract/context_conflict"
                 print(f"  🔧 Scene {scene.get('id','?')} {key} [{reason}]: '{original}' → '{replacement}'")
             else:
                 scene_used.add(original)
@@ -211,24 +169,59 @@ TOPIC_CATEGORIES = {
         ),
         "few_shot_example": """{
   "metadata": {
-    "title": "The CIA Experiment That Destroyed 80 Minds 🕵️",
-    "description": "In 1953, the CIA secretly drugged 80 unwitting civilians with LSD for 10 years. Project MKUltra was the darkest chapter of American history.",
+    "title": "The CIA Experiment That Destroyed 80 Minds 🕵️💥",
+    "description": "Project MKUltra secretly dosed hundreds of unwitting civilians with LSD for a decade. The CIA destroyed the files, but the dark truth survived.",
     "hashtags": "#Shorts #DarkHistory #CIA #Conspiracy #DidYouKnow"
   },
   "scenes": [
     {
       "id": 1,
-      "text": "In 1953, the CIA secretly dosed 80 people with LSD without consent.",
+      "text": "The CIA secretly drugged hundreds of civilians—and that was only Phase One.",
       "visual_1": "nuclear explosion black white",
       "visual_2": "classified documents desk lamp",
       "mood": "shocking"
     },
     {
       "id": 2,
-      "text": "Project MKUltra ran 150 experiments across 80 institutions for a decade.",
-      "visual_1": "laboratory old equipment hospital",
-      "visual_2": "army soldiers march uniform",
+      "text": "In 1953, Project MKUltra launched covertly across 80 American universities and hospitals.",
+      "visual_1": "government building exterior night",
+      "visual_2": "old newspaper archive",
+      "mood": "dramatic"
+    },
+    {
+      "id": 3,
+      "text": "For ten full years, the government conducted over 150 illegal mind-control experiments.",
+      "visual_1": "typewriter paper close up",
+      "visual_2": "laboratory old equipment hospital",
+      "mood": "intense"
+    },
+    {
+      "id": 4,
+      "text": "Unwitting subjects were given massive doses of LSD, electroshock, and sensory deprivation.",
+      "visual_1": "hospital room dark corridor",
+      "visual_2": "medical syringes laboratory glass",
       "mood": "tense"
+    },
+    {
+      "id": 5,
+      "text": "Dozens of innocent victims suffered permanent mental collapse or unexplained deaths.",
+      "visual_1": "prison cell corridor empty",
+      "visual_2": "memorial grave stone cemetery",
+      "mood": "tragic"
+    },
+    {
+      "id": 6,
+      "text": "When Congress investigated in 1973, the CIA director ordered almost all files burned.",
+      "visual_1": "paper burning fire close",
+      "visual_2": "courtroom empty gavel desk",
+      "mood": "mind-blowing"
+    },
+    {
+      "id": 7,
+      "text": "The official files were destroyed. But the scars on history remain forever.",
+      "visual_1": "barbed wire fence sunset",
+      "visual_2": "ruins abandoned building exterior",
+      "mood": "reflective"
     }
   ]
 }""",
@@ -273,23 +266,58 @@ TOPIC_CATEGORIES = {
         "few_shot_example": """{
   "metadata": {
     "title": "A Teaspoon of Neutron Star = 10 Million Tons 🤯⭐",
-    "description": "Neutron stars are the densest objects in the universe. Just one teaspoon of their matter weighs more than all of humanity combined.",
+    "description": "Neutron stars are so dense that a single teaspoon of their core weighs more than all of humanity combined.",
     "hashtags": "#Shorts #Science #MindBlown #Physics #DidYouKnow"
   },
   "scenes": [
     {
       "id": 1,
-      "text": "A teaspoon of neutron star material weighs 10 million tons.",
+      "text": "Just one teaspoon of this material weighs more than all of humanity combined.",
       "visual_1": "star explosion supernova space",
       "visual_2": "galaxy deep space blue",
       "mood": "shocking"
     },
     {
       "id": 2,
-      "text": "Neutron stars are born when a star 8x the sun's mass collapses in seconds.",
+      "text": "Deep in space lies the collapsed core of a giant star: a neutron star.",
       "visual_1": "telescope observatory dome night",
       "visual_2": "laser beam laboratory blue",
       "mood": "dramatic"
+    },
+    {
+      "id": 3,
+      "text": "A single teaspoon of its core weighs an astounding 10 million tons.",
+      "visual_1": "particle accelerator laboratory",
+      "visual_2": "microscope macro science",
+      "mood": "intense"
+    },
+    {
+      "id": 4,
+      "text": "Extreme gravity crushes subatomic particles together until atoms completely collapse into pure neutrons.",
+      "visual_1": "atoms model physics laboratory",
+      "visual_2": "lightning strike slow motion",
+      "mood": "intense"
+    },
+    {
+      "id": 5,
+      "text": "If a piece were brought to Earth, its weight would instantly punch through the planet's crust.",
+      "visual_1": "lava flow rock close",
+      "visual_2": "cracked ground dry earth",
+      "mood": "tragic"
+    },
+    {
+      "id": 6,
+      "text": "Spinning 700 times per second, its magnetic field tears apart surrounding space.",
+      "visual_1": "sun solar flare orange",
+      "visual_2": "pulsar neutron star space animation",
+      "mood": "mind-blowing"
+    },
+    {
+      "id": 7,
+      "text": "The universe is built on physics that defies everything we consider real.",
+      "visual_1": "scientist laboratory coat night",
+      "visual_2": "night sky stars telescope",
+      "mood": "reflective"
     }
   ]
 }""",
@@ -331,24 +359,59 @@ TOPIC_CATEGORIES = {
         ),
         "few_shot_example": """{
   "metadata": {
-    "title": "The Void With 330M Light-Years of Nothing 🕳️🌌",
-    "description": "The Boötes Void is an enormous empty region of space 330 million light-years across. No galaxies. No stars. Just absolute nothing.",
+    "title": "The Void 330 Million Light-Years Wide 🕳️🌌",
+    "description": "The Boötes Void is an enormous empty sphere in space large enough to hold 2,000 Milky Way galaxies.",
     "hashtags": "#Shorts #Space #Universe #DeepSpace #MindBlown"
   },
   "scenes": [
     {
       "id": 1,
-      "text": "330 million light-years of absolute emptiness. No stars. No galaxies. Nothing.",
-      "visual_1": "galaxy spiral stars wide",
-      "visual_2": "night sky stars timelapse",
-      "mood": "eerie"
+      "text": "There is a region of space 330 million light-years wide where almost nothing exists.",
+      "visual_1": "black space stars distant",
+      "visual_2": "galaxy spiral stars wide",
+      "mood": "shocking"
     },
     {
       "id": 2,
-      "text": "The Boötes Void is so large, 2,000 Milky Way galaxies could fit inside.",
-      "visual_1": "Earth from orbit blue",
-      "visual_2": "telescope observatory dome night",
-      "mood": "awe"
+      "text": "Astronomers discovered it in 1981 and named it the Boötes Void.",
+      "visual_1": "telescope observatory dome night",
+      "visual_2": "radio telescope array night",
+      "mood": "dramatic"
+    },
+    {
+      "id": 3,
+      "text": "Spanning 330 million light-years across, it could easily fit 2,000 Milky Way galaxies.",
+      "visual_1": "galaxy center bright stars",
+      "visual_2": "Earth from orbit blue",
+      "mood": "intense"
+    },
+    {
+      "id": 4,
+      "text": "Cosmic gravity pulled ancient matter outward into dense galaxy webs, leaving an empty void behind.",
+      "visual_1": "star cluster nebula purple",
+      "visual_2": "meteor shower night sky",
+      "mood": "intense"
+    },
+    {
+      "id": 5,
+      "text": "If Earth were inside it, we wouldn't have known other galaxies existed until the 1960s.",
+      "visual_1": "astronaut spacewalk Earth orbit",
+      "visual_2": "night sky stars timelapse",
+      "mood": "tragic"
+    },
+    {
+      "id": 6,
+      "text": "Instead of thousands of expected galaxies, researchers found only 60 lonely isolated stars.",
+      "visual_1": "comet tail space dark",
+      "visual_2": "red planet surface barren",
+      "mood": "mind-blowing"
+    },
+    {
+      "id": 7,
+      "text": "Out there in the dark, the cosmos is emptier than human imagination can grasp.",
+      "visual_1": "planet atmosphere clouds space",
+      "visual_2": "deep space dark stars distant",
+      "mood": "reflective"
     }
   ]
 }""",
@@ -392,24 +455,59 @@ TOPIC_CATEGORIES = {
         ),
         "few_shot_example": """{
   "metadata": {
-    "title": "A Real Alien Signal in 1977 That Lasted 72 Seconds 👽📡",
-    "description": "The Wow! Signal was detected on August 15, 1977 and lasted exactly 72 seconds. It has never been explained or repeated since.",
+    "title": "The 72-Second Signal From Deep Space 👽📡",
+    "description": "In 1977, a radio telescope detected a 72-second transmission from deep space that has never been explained.",
     "hashtags": "#Shorts #Mystery #Aliens #Unexplained #DidYouKnow"
   },
   "scenes": [
     {
       "id": 1,
-      "text": "August 15, 1977: a 72-second signal from deep space. Never repeated. Never explained.",
+      "text": "A 72-second signal came from deep space in 1977—and scientists still cannot explain it.",
       "visual_1": "storm lightning dark sea waves",
       "visual_2": "radio telescope antenna night",
-      "mood": "tense"
+      "mood": "shocking"
     },
     {
       "id": 2,
-      "text": "Big Ear Observatory in Ohio picked up a signal 30x stronger than background noise.",
+      "text": "On August 15, 1977, the Big Ear radio telescope in Ohio registered an anomalous frequency.",
       "visual_1": "satellite dish sky blue",
       "visual_2": "computer screen data green",
-      "mood": "eerie"
+      "mood": "dramatic"
+    },
+    {
+      "id": 3,
+      "text": "The signal broadcasted at 1420 megahertz, exactly 30 times stronger than background space noise.",
+      "visual_1": "old map document desk",
+      "visual_2": "night sky stars telescope",
+      "mood": "intense"
+    },
+    {
+      "id": 4,
+      "text": "It targeted the hydrogen line, the exact frequency astronomers expect intelligent alien life to use.",
+      "visual_1": "galaxy spiral stars dark",
+      "visual_2": "laboratory old equipment",
+      "mood": "intense"
+    },
+    {
+      "id": 5,
+      "text": "Astronomer Jerry Ehman circled the printed data in red ink and wrote one word: 'Wow!'",
+      "visual_1": "classified documents desk lamp",
+      "visual_2": "typewriter paper close up",
+      "mood": "tense"
+    },
+    {
+      "id": 6,
+      "text": "Despite searching that exact cosmic coordinate for decades, the signal was never heard again.",
+      "visual_1": "fog forest road trees",
+      "visual_2": "abandoned lighthouse sea",
+      "mood": "mind-blowing"
+    },
+    {
+      "id": 7,
+      "text": "We listened to the universe for 72 seconds. Then it went completely silent.",
+      "visual_1": "ocean horizon dark night",
+      "visual_2": "night sky stars timelapse",
+      "mood": "reflective"
     }
   ]
 }""",
@@ -454,23 +552,58 @@ TOPIC_CATEGORIES = {
         "few_shot_example": """{
   "metadata": {
     "title": "The Sound Louder Than Any Animal — From 950m Deep 🌊👾",
-    "description": "In 1997 NOAA recorded 'The Bloop' — a sound 5x louder than the blue whale at 950 meters depth. Scientists still argue about what made it.",
+    "description": "In 1997 NOAA recorded 'The Bloop' — a sound 5x louder than the blue whale at 950 meters depth.",
     "hashtags": "#Shorts #Ocean #DeepSea #Mystery #DidYouKnow"
   },
   "scenes": [
     {
       "id": 1,
-      "text": "In 1997, a sound 5x louder than any animal was recorded 950 meters underwater.",
+      "text": "In 1997, a sound 5 times louder than any known animal echoed through the ocean.",
       "visual_1": "ocean waves aerial dark",
       "visual_2": "deep ocean underwater blue rays",
-      "mood": "tense"
+      "mood": "shocking"
     },
     {
       "id": 2,
-      "text": "NOAA hydrophones detected it across 5,000 kilometers of open Pacific Ocean.",
-      "visual_1": "jellyfish underwater dark blue",
+      "text": "Hydrophones deployed deep in the Pacific recorded an ultra-low frequency sound called 'The Bloop'.",
+      "visual_1": "submarine underwater vessel",
       "visual_2": "scuba diver deep underwater",
-      "mood": "eerie"
+      "mood": "dramatic"
+    },
+    {
+      "id": 3,
+      "text": "The noise travelled over 5,000 kilometers across the open ocean basin.",
+      "visual_1": "ocean horizon sunset wide",
+      "visual_2": "ship ocean storm waves",
+      "mood": "intense"
+    },
+    {
+      "id": 4,
+      "text": "Sensors at a depth of 950 meters registered a rising frequency lasting over a full minute.",
+      "visual_1": "jellyfish underwater dark blue",
+      "visual_2": "deep sea fish underwater dark",
+      "mood": "intense"
+    },
+    {
+      "id": 5,
+      "text": "The noise startled oceanographers, far exceeding the sound signature of any living whale.",
+      "visual_1": "whale diving ocean deep",
+      "visual_2": "sonar screen submarine lab",
+      "mood": "tense"
+    },
+    {
+      "id": 6,
+      "text": "While mystery fans suspected a sea monster, scientists calculated it matched massive Antarctic icequakes.",
+      "visual_1": "glacier ice underwater ocean",
+      "visual_2": "underwater cave light rays",
+      "mood": "mind-blowing"
+    },
+    {
+      "id": 7,
+      "text": "The ocean is miles deep—and most of its secrets are hidden in complete darkness.",
+      "visual_1": "ocean floor sand ripple",
+      "visual_2": "bioluminescent water night",
+      "mood": "reflective"
     }
   ]
 }""",
@@ -514,24 +647,59 @@ TOPIC_CATEGORIES = {
         ),
         "few_shot_example": """{
   "metadata": {
-    "title": "Built 12,000 Years Ago — Before Egypt Even Existed 🏛️🤯",
-    "description": "Göbekli Tepe in Turkey was built 12,000 years ago — 6,000 years before the pyramids. It rewrote everything we knew about human civilization.",
+    "title": "Built 12,000 Years Ago — Before Egypt Existed 🏛️🤯",
+    "description": "Göbekli Tepe in Turkey was built 12,000 years ago — 6,000 years before the pyramids, rewriting human history.",
     "hashtags": "#Shorts #History #AncientHistory #LostCivilization #DidYouKnow"
   },
   "scenes": [
     {
       "id": 1,
-      "text": "Turkey, 9600 BC. Humans built a massive stone temple 6,000 years before Egypt.",
+      "text": "Humans built a massive stone temple 6,000 years before the Egyptian pyramids.",
       "visual_1": "stone monument circle field sunset",
       "visual_2": "ancient ruins stone columns aerial",
-      "mood": "awe"
+      "mood": "shocking"
     },
     {
       "id": 2,
-      "text": "Each stone pillar weighs 10 to 20 tons, carved without metal tools.",
+      "text": "In 1994, archaeologists in southern Turkey uncovered the ancient site of Göbekli Tepe.",
+      "visual_1": "archaeological excavation site dig",
+      "visual_2": "pyramid Egypt aerial sand",
+      "mood": "dramatic"
+    },
+    {
+      "id": 3,
+      "text": "Massive T-shaped stone pillars weigh up to 20 tons each, standing 5 meters tall.",
       "visual_1": "large stone wall blocks construction",
       "visual_2": "stone carving wall relief closeup",
-      "mood": "dramatic"
+      "mood": "intense"
+    },
+    {
+      "id": 4,
+      "text": "Stone Age hunter-gatherers carved and moved these megaliths without metal tools or wheels.",
+      "visual_1": "quarry stone massive ancient",
+      "visual_2": "cave painting prehistoric wall",
+      "mood": "intense"
+    },
+    {
+      "id": 5,
+      "text": "The discovery proved complex ritual society existed thousands of years before agriculture.",
+      "visual_1": "stone circle field sunset",
+      "visual_2": "archaeological artifacts clay pot",
+      "mood": "tense"
+    },
+    {
+      "id": 6,
+      "text": "After centuries of use, the ancient builders intentionally buried the entire complex in dirt.",
+      "visual_1": "jungle overgrown stone temple",
+      "visual_2": "ancient city ruins aerial",
+      "mood": "mind-blowing"
+    },
+    {
+      "id": 7,
+      "text": "History was written in stone. We just hadn't dug deep enough to read it.",
+      "visual_1": "sphinx Egypt desert sunset",
+      "visual_2": "ancient columns marble sky",
+      "mood": "reflective"
     }
   ]
 }""",
@@ -582,23 +750,58 @@ TOPIC_CATEGORIES = {
         "few_shot_example": """{
   "metadata": {
     "title": "A Paralyzed Man Controlled a PC With His Mind 🧠💻",
-    "description": "Neuralink implanted a chip in a paralyzed man's brain, letting him move a cursor and type using only his thoughts. This changes everything.",
+    "description": "Neuralink implanted a brain chip in a paralyzed patient, enabling cursor control and gaming via thought alone.",
     "hashtags": "#Shorts #Tech #AI #Neuralink #FutureTech"
   },
   "scenes": [
     {
       "id": 1,
-      "text": "A paralyzed man moved a computer cursor using only his brain — no hands.",
+      "text": "A paralyzed man controlled a computer screen using only his thoughts.",
       "visual_1": "brain MRI scan hospital closeup",
       "visual_2": "computer screen code dark room",
-      "mood": "awe"
+      "mood": "shocking"
     },
     {
       "id": 2,
-      "text": "Neuralink placed 1,024 electrodes into his motor cortex in a 2-hour surgery.",
+      "text": "In 2024, medical researchers successfully implanted a brain-computer interface into a human patient.",
       "visual_1": "surgeon operating room hospital",
       "visual_2": "microscope macro laboratory science",
       "mood": "dramatic"
+    },
+    {
+      "id": 3,
+      "text": "The microchip uses 1,024 ultra-thin electrodes threaded into the brain's motor cortex.",
+      "visual_1": "neurons brain anatomy model",
+      "visual_2": "server room blue lights corridor",
+      "mood": "intense"
+    },
+    {
+      "id": 4,
+      "text": "Neural signals are converted into digital Bluetooth commands in real time.",
+      "visual_1": "robot arm factory assembly",
+      "visual_2": "laptop screen programmer dark",
+      "mood": "intense"
+    },
+    {
+      "id": 5,
+      "text": "The patient played online chess and video games without moving a single muscle.",
+      "visual_1": "VR headset person wearing lab",
+      "visual_2": "3D printer technology layer",
+      "mood": "tense"
+    },
+    {
+      "id": 6,
+      "text": "Engineers are now testing two-way signals to restore physical touch to robotic limbs.",
+      "visual_1": "humanoid robot machine lab",
+      "visual_2": "laboratory petri dish scientist",
+      "mood": "mind-blowing"
+    },
+    {
+      "id": 7,
+      "text": "The barrier between human thought and digital technology has officially vanished.",
+      "visual_1": "electric car charging station",
+      "visual_2": "drone flight aerial city sunset",
+      "mood": "reflective"
     }
   ]
 }""",
@@ -614,52 +817,85 @@ TOPIC_CATEGORIES = {
             "or geological events that reshaped continents. "
             "The topic MUST include at least one specific measurement (km/h, °C, km, tons, years). "
             "Examples of the RIGHT style: "
+            "'The Earthquake That Shifted Earth's Axis and Changed the Length of a Day', "
             "'The 1960 Chile Earthquake Was So Powerful It Made The Earth Ring Like a Bell for 2 Days', "
-            "'The Tardigrade Can Survive -272°C, Radiation, and the Vacuum of Space', "
             "'The Rogue Wave Measured at 29 Meters That Appeared Out of Nowhere in the North Sea'. "
             "Examples of the WRONG style: 'Nature is Extreme', 'Scary Animals Facts'. "
             "Return ONLY the topic title. No quotes, no commentary."
         ),
         "visual_guide": (
             "EXTREME NATURE — PEXELS VISUAL RULES (best category for Pexels footage availability):\n"
-            "BANNED WORDS (never use alone): 'extreme', 'powerful', 'epic', 'amazing', 'incredible', "
-            "'phenomenon', 'force of nature', 'nature concept'.\n"
+            "BANNED WORDS & SCENERY: 'extreme', 'powerful', 'epic', 'amazing', 'incredible', "
+            "'phenomenon', 'force of nature', 'nature concept', 'surfer', 'surfing', 'calm beach', 'compass'.\n"
             "SUBSTITUTION MAP (use the RIGHT column):\n"
             "  'extreme weather'        → 'tornado funnel road field'\n"
-            "  'powerful nature'        → 'waterfall powerful rocks'\n"
-            "  'nature phenomenon'      → 'volcanic eruption lava close'\n"
-            "  'extreme creature'       → 'lion hunting prey grass'\n"
-            "  'nature force'           → 'ocean wave surfer large'\n"
-            "  'incredible animal'      → 'eagle diving catch fish'\n"
+            "  'nature force'           → 'violent ocean waves aerial dark'\n"
+            "  'tsunami wave'           → 'tsunami wave shore dark'\n"
+            "  'axis shift'             → 'earth axis rotation space animation'\n"
             "SCENE 1 HOOK — pick ONE of: 'volcanic eruption lava close', 'tornado funnel road', "
-            "'lightning strike storm night', 'ocean wave surfer large'.\n"
+            "'lightning strike storm night', 'violent ocean waves aerial dark', 'earth axis rotation space animation'.\n"
             "VARIETY GUIDE across 7 scenes:\n"
             "  - 2x weather/geological: 'tornado road field', 'hurricane aerial storm', 'earthquake crack ground'\n"
             "  - 2x volcanic/fire: 'volcanic eruption lava', 'lava flow rock ocean', 'wildfire forest flames'\n"
-            "  - 2x wildlife: 'lion hunting prey', 'eagle diving fish', 'wolf pack snow forest'\n"
-            "  - 1x water/ice: 'waterfall powerful rocks', 'avalanche snow mountain', 'tsunami wave shore'\n"
+            "  - 2x wildlife/disaster: 'tsunami wave shore dark', 'flooded city street aerial water', 'lion hunting prey'\n"
+            "  - 1x space/earth: 'earth axis rotation space animation', 'planet earth space rotation'\n"
             "ANTI-REPEAT RULE: every visual_1 and visual_2 across ALL scenes MUST be unique."
         ),
         "few_shot_example": """{
   "metadata": {
-    "title": "This Tiny Animal Survives -272°C and Outer Space 🐛🌌",
-    "description": "The Tardigrade is 0.5mm long but can survive temperatures near absolute zero, radiation, and the vacuum of space for 10 days.",
-    "hashtags": "#Shorts #Nature #Science #Animals #MindBlown"
+    "title": "The Earthquake That Shifted the Planet 🌍💥",
+    "description": "In 2004, a massive rupture beneath the Indian Ocean triggered a devastating tsunami and slightly shifted Earth's figure axis.",
+    "hashtags": "#Shorts #Earthquake #Tsunami #Geology #Science"
   },
   "scenes": [
     {
       "id": 1,
-      "text": "This 0.5mm creature survived -272 Celsius, radiation, and the vacuum of space.",
-      "visual_1": "microscope macro insect closeup",
-      "visual_2": "frozen ice crystal macro close",
+      "text": "One earthquake shifted the entire planet—and that wasn't its deadliest effect.",
+      "visual_1": "planet Earth slowly rotating in space",
+      "visual_2": "seismograph needle violent shaking",
       "mood": "shocking"
     },
     {
       "id": 2,
-      "text": "Tardigrades survived all 5 of Earth's mass extinction events across 500 million years.",
-      "visual_1": "volcanic eruption lava smoke",
-      "visual_2": "meteor shower night sky",
+      "text": "On December 26, 2004, a massive rupture tore beneath the Indian Ocean.",
+      "visual_1": "dark stormy ocean aerial",
+      "visual_2": "ocean floor rocks sand underwater",
       "mood": "dramatic"
+    },
+    {
+      "id": 3,
+      "text": "The fault ruptured across roughly 1,300 kilometers of ocean floor.",
+      "visual_1": "earthquake fault rupture aerial",
+      "visual_2": "ocean waves dark aerial view",
+      "mood": "intense"
+    },
+    {
+      "id": 4,
+      "text": "The rupture suddenly lifted the seabed, displacing enough water to launch waves across the ocean.",
+      "visual_1": "underwater ocean floor displacement",
+      "visual_2": "massive dark ocean waves aerial",
+      "mood": "intense"
+    },
+    {
+      "id": 5,
+      "text": "The tsunami struck 14 countries and killed more than 200,000 people.",
+      "visual_1": "tsunami flooding coastal buildings",
+      "visual_2": "flooded coastal city aerial",
+      "mood": "tragic"
+    },
+    {
+      "id": 6,
+      "text": "Scientists calculated that the mass shift moved Earth's figure axis by several centimeters.",
+      "visual_1": "planet Earth space slow rotation",
+      "visual_2": "Earth from orbit blue space",
+      "mood": "mind-blowing"
+    },
+    {
+      "id": 7,
+      "text": "The ground beneath you feels still. But the planet has never truly stopped moving.",
+      "visual_1": "mountain range rock aerial",
+      "visual_2": "Earth from space slowly rotating",
+      "mood": "reflective"
     }
   ]
 }""",
@@ -893,42 +1129,49 @@ class ContentBrain:
         few_shot = category.get("few_shot_example", "")
 
         prompt = f"""
-You are the lead scriptwriter and YouTube SEO expert for a viral Edutainment channel.
+You are the lead scriptwriter and YouTube SEO expert for a top-tier viral Edutainment channel.
 Topic: {topic}
 
-Generate SEO metadata and 7-8 fast-paced scenes following this proven retention structure:
-- Scene 1: High-impact Hook (stops the scroll in the first 3 seconds)
-- Scene 2-4: Core Context & Mind-blowing mechanism with real data
-- Scene 5-6: Unexpected Twist or Revelation
-- Final Scene: Strong Outro / Punchline that sticks
+Generate SEO metadata and exactly 7 fast-paced scenes following this STRICT 7-STAGE RETENTION STRUCTURE:
+- Scene 1 [HOOK & OPEN LOOP]: Immediate brutal claim or mind-blowing consequence (0-2s) + Open Loop (2-5s). NEVER start with a date, location, or background history ("On December 26, 2004...", "In 1953..."). Reveal the most shocking consequence FIRST.
+- Scene 2 [CONTEXT / IDENTIFICATION]: Reveal the exact event, location, date, or origin story.
+- Scene 3 [SCALE & MEASUREMENTS]: Extreme physical scale and measurable data (distance, magnitude, speed, volume).
+- Scene 4 [MECHANISM]: How it physically happened (seabed displacement, chemical process, tectonic collision, atomic reaction).
+- Scene 5 [HUMAN & EMOTIONAL IMPACT]: Real-world human, environmental, or societal consequence. (DO NOT skip human impact; pure numbers without human context reduce emotional retention).
+- Scene 6 [PLANETARY & UNEXPECTED EFFECT]: Secondary mind-blowing consequence or unexpected revelation (axis shift, rotation change, deep space ripple, hidden secret).
+- Scene 7 [CLOSING / PERSPECTIVE SHIFT]: A memorable final statement, perspective shift, or haunting reality check. BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
 
 ══════════════════════════════════════════════════
-UNIVERSAL SCRIPT RULES
+UNIVERSAL SCRIPT RULES (STRICT COMPLIANCE REQUIRED)
 ══════════════════════════════════════════════════
 TEXT RULES:
-- "text": Maximum 12-15 words per scene. Punchy, fast-paced narration.
-- ANTI-CLICHÉ HOOK: Scene 1 MUST NOT start with "What if I told you", "Did you know",
-  "Have you ever wondered". Start IMMEDIATELY with a year, number, name, or event.
-- CONCRETE DATA: Include 2-3 real specific numbers across the script.
-- FACTUAL INTEGRITY: Do NOT invent facts. Real data drives impact — no hyperbole needed.
+- "text": Short spoken sentences, ideally 8-16 words per scene. Fast-paced, punchy narration.
+- ANTI-CLICHÉ HOOK: Scene 1 MUST NOT start with dates/locations or "What if I told you", "Did you know", "Have you ever wondered". Start IMMEDIATELY with the most surprising claim.
+- CONCRETE DATA & FACT SAFETY:
+  * Distinguish total energy from seismic energy or disputed estimates.
+  * Use cautious scientific framing for numerical claims: "estimated to rival", "according to researchers", "approximately", "scientists calculated".
+  * Never exaggerate numbers solely for virality or present single disputed figures as absolute facts.
 - JSON SAFETY: Do NOT use double quotes (") inside text fields. Use single quotes (').
 
-VISUAL QUERY RULES (CRITICAL — read every word):
-- "visual_1" & "visual_2": 2 DISTINCT Pexels stock video search queries.
-- Use ONLY 2-4 simple, literal, concrete English NOUNS and ADJECTIVES.
-- Every query must describe a PHYSICAL OBJECT or SCENE you can point at in real life.
+VISUAL QUERY RULES (CRITICAL — 3-TIER SYSTEM & NEGATIVE INTENT):
+- "visual_1" & "visual_2": 2 DISTINCT Pexels stock video search queries per scene.
+- 3-TIER VISUAL MATCHING:
+  1. Priority 1: Direct literal visual match to the spoken narration.
+  2. Priority 3: Scientifically accurate visual representation.
+  3. Priority 3: Atmospheric supporting visual.
+- AVOID MISLEADING METAPHORS: Never use metaphorical footage that creates scientific misunderstanding (e.g., DO NOT use a spinning magnetic compass for Earth axis/rotation shifts; use 'Earth axis rotation space animation').
+- BANNED NEGATIVE INTENT VISUALS — NEVER use:
+  smiling people, tourism footage, recreational surfing ('surfer'), calm beaches during disasters, unrelated cinematic stock, visuals that contradict the emotional tone.
 - BANNED ABSTRACT WORDS — NEVER use these in any query:
   concept, abstract, mysterious, paranormal, eerie, phenomenon, anomaly, theory,
   darkness (alone), void (alone), pressure (alone), force, energy (alone),
   power (alone), unknown, invisible, cosmic, infinite, eternal, glowing (alone),
   haunted, supernatural, cursed, epic, stunning, beautiful, amazing, incredible.
-- ANTI-REPEAT: Every visual_1 and visual_2 across ALL scenes must be UNIQUE.
-  Do NOT reuse any query string from a previous scene.
-- Scene 1 visual_1 MUST be a high-action explosive image (explosion, storm, fire, impact).
+- ANTI-REPEAT: Every visual_1 and visual_2 across ALL scenes MUST be unique.
 
 METADATA RULES:
-- "title": High-CTR viral title with 1-2 emojis, under 60 characters.
-- "description": 2-3 engaging sentences. Include the most shocking concrete fact.
+- "title": Clean, ultra-punchy viral title (under 50 chars) focusing on the single core mind-blowing claim with 1-2 emojis. Avoid long documentary-style titles. (e.g. "The Earthquake That Moved the Entire Planet 🌍💥")
+- "description": 2-3 engaging sentences. Include the most shocking claim and cautious scientific estimate.
 - "hashtags": Exactly 5 viral hashtags relevant to this specific category.
 
 ══════════════════════════════════════════════════
@@ -937,7 +1180,7 @@ CATEGORY-SPECIFIC VISUAL GUIDE:
 {visual_guide}
 
 ══════════════════════════════════════════════════
-FEW-SHOT EXAMPLE — match this JSON schema exactly:
+FEW-SHOT EXAMPLE — match this JSON schema and narrative structure exactly:
 ══════════════════════════════════════════════════
 {few_shot}
 
