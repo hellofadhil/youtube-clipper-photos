@@ -109,7 +109,7 @@ async def main():
         custom_location = None
         if TOPIC_CATEGORIES[category_key]["mode"] == "scenery":
             loc = input(
-                "📍 Masukkan nama lokasi/destinasi (kosongkan untuk acak dari AI): "
+                "📍 Masukkan topik custom kamu (misal: 'How AI works', 'Become an Astronaut', 'Paris at Sunset', dll — kosongkan untuk acak): "
             ).strip()
             custom_location = loc if loc else None
 
@@ -167,7 +167,7 @@ async def main():
             if bgm_mood:
                 print(f"🎶 BGM GENRE     : {bgm_mood.upper()}")
             if landmarks:
-                print(f"📍 LANDMARKS     : {', '.join(landmarks[:5])}{'...' if len(landmarks) > 5 else ''}")
+                print(f"📍 VISUAL ANCHORS: {', '.join(landmarks[:5])}{'...' if len(landmarks) > 5 else ''}")
         if metadata:
             print(f"🏷️  JUDUL VIRAL   : {metadata.get('title', '-')}")
             print(f"📝 DESKRIPSI     : {metadata.get('description', '-')}")
@@ -206,7 +206,7 @@ async def main():
                 # Allow changing location for scenery mode on regeneration
                 if is_bgm_only:
                     loc = input(
-                        "📍 Masukkan nama lokasi baru (kosongkan untuk acak dari AI): "
+                        "📍 Masukkan topik custom baru (misal: 'How AI works', 'Become an Astronaut', 'Paris', dll — kosongkan untuk acak): "
                     ).strip()
                     custom_location = loc if loc else None
                     landmarks = []  # reset so landmarks are re-fetched for new location

@@ -665,72 +665,60 @@ TOPIC_CATEGORIES = {
 }""",
     },
     "9": {
-        "name": "🗺️ Travel Scenery (BGM Only)",
-        "description": "Pemandangan indah dari berbagai penjuru dunia — hanya musik, tanpa narasi",
+        "name": "🎨 Custom Topic (BGM Only)",
+        "description": "Bebas tentukan topik apa saja (misal: 'How AI works', 'Become an Astronaut', 'Paris', dll) — BGM only",
         "mode": "scenery",
         "topic_prompt": (
-            "Give me 1 visually stunning travel destination for a cinematic scenery YouTube Short. "
-            "Choose a world-famous OR hidden gem location known for breathtaking visual variety. "
-            "The destination should offer a mix of: iconic architecture OR dramatic landscapes, "
-            "golden-hour lighting opportunities, aerial and street-level contrast, and vibrant color. "
-            "Examples: 'Paris at Golden Hour', 'Bali Rice Terraces at Sunrise', "
-            "'Tokyo Neon Nights', 'Santorini Cliffside Sunset', 'Patagonia Glaciers and Peaks', "
-            "'Kyoto Cherry Blossom Season', 'Dubai Skyline Night', 'Cappadocia Hot Air Balloons'. "
-            "Return ONLY the destination + mood descriptor. No quotes, no commentary."
+            "Give me 1 visually stunning, highly engaging concept or destination for a visual YouTube Short (BGM only). "
+            "It can be a world-famous location (e.g. 'Paris at Sunset'), a futuristic tech journey (e.g. 'How AI Robotics Works'), "
+            "an inspiring career path (e.g. 'Becoming a NASA Astronaut'), or an extreme nature event. "
+            "Return ONLY the topic title. No quotes, no commentary."
         ),
         "visual_guide": (
-            "TRAVEL SCENERY — PEXELS VISUAL RULES (BGM-only, purely cinematic):\n"
-            "BANNED WORDS (never use alone): 'beautiful', 'stunning', 'travel', 'scenery', 'amazing', "
-            "'breathtaking', 'wanderlust', 'tourism', 'vacation'.\n"
-            "SUBSTITUTION MAP — always combine LOCATION + SHOT TYPE + LIGHTING:\n"
-            "  'Paris scenery'          → 'Eiffel Tower golden hour aerial'\n"
-            "  'Bali travel'            → 'Bali rice terrace sunrise aerial'\n"
-            "  'Tokyo beautiful'        → 'Tokyo street neon night rain'\n"
-            "  'nature scenery'         → 'mountain lake reflection sunrise'\n"
-            "  'stunning city'          → 'city aerial skyline sunset'\n"
+            "CUSTOM VISUAL SHORT — PEXELS VISUAL RULES (BGM-only, purely cinematic):\n"
+            "BANNED WORDS (never use alone): 'beautiful', 'stunning', 'scenery', 'travel', 'amazing', "
+            "'breathtaking', 'wanderlust', 'tourism', 'vacation', 'concept', 'abstract'.\n"
+            "VISUAL ANCHORS RULE — each scene MUST focus on its assigned visual anchor topic.\n"
             "MANDATORY 4-SHOT-TYPE MIX across 8 scenes (2 each):\n"
-            "  1. AERIAL: 'city aerial skyline', 'island aerial ocean', '[landmark] aerial view'\n"
-            "  2. LANDMARK: '[landmark name] exterior', '[iconic building] close'\n"
-            "  3. STREET/LIFE: 'street market', 'cobblestone street cafe', 'people walking city'\n"
-            "  4. NATURE DETAIL: 'cherry blossom petals', 'ocean waves shore', 'mountain sunset'\n"
-            "MANDATORY TIME-OF-DAY VARIETY across 8 scenes:\n"
-            "  Include at least: 1x sunrise/dawn, 2x golden hour, 1x blue hour, 1x night.\n"
-            "DESTINATION NAME RULE: include the actual city/country name in at least 4 of 8 queries.\n"
-            "ANTI-REPEAT RULE: every visual_1 and visual_2 across ALL 8 scenes MUST be unique."
+            "  1. AERIAL / WIDE: overhead drone or wide panoramic view\n"
+            "  2. OBJECT / FEATURE: main subject, machine, landmark, or tool close-up\n"
+            "  3. ACTION / PEOPLE: human interaction, movement, laboratory work, street life\n"
+            "  4. DETAIL / TEXTURE: lighting contrast, water, fire, screens, close details\n"
+            "ANTI-REPEAT RULE: every visual_1 and visual_2 across ALL 8 scenes MUST be unique (16 unique queries total)."
         ),
         "few_shot_example": """{
   "metadata": {
-    "title": "Paris Will Always Be Breathtaking 🗼✨",
-    "description": "Lose yourself in the timeless beauty of Paris — from the golden glow of the Eiffel Tower to the charming cobblestone streets of Montmartre.",
-    "hashtags": "#Shorts #Paris #Travel #Wanderlust #Beautiful"
+    "title": "Becoming a NASA Astronaut 🚀👨‍🚀",
+    "description": "Experience the intense journey of becoming an astronaut — from zero-gravity underwater training to launching into deep space.",
+    "hashtags": "#Shorts #Astronaut #Space #NASA #Future"
   },
   "scenes": [
     {
       "id": 1,
       "text": "",
-      "visual_1": "Eiffel Tower golden hour aerial",
-      "visual_2": "Paris rooftop sunset cityscape",
+      "visual_1": "rocket launch pad space shuttle night",
+      "visual_2": "astronaut spacesuit helmet closeup",
       "mood": "majestic"
     },
     {
       "id": 2,
       "text": "",
-      "visual_1": "Paris cobblestone street cafe evening",
-      "visual_2": "Seine river Paris bridge reflection",
+      "visual_1": "zero gravity underwater pool training",
+      "visual_2": "scuba diver astronaut suit underwater",
       "mood": "dreamy"
     },
     {
       "id": 3,
       "text": "",
-      "visual_1": "Paris city lights night aerial",
-      "visual_2": "Eiffel Tower sparkling night",
+      "visual_1": "centrifuge g force simulator lab",
+      "visual_2": "astronaut flight simulator cockpit",
       "mood": "vibrant"
     },
     {
       "id": 4,
       "text": "",
-      "visual_1": "Montmartre street artist Paris",
-      "visual_2": "Paris flower market stall colorful",
+      "visual_1": "astronaut spacewalk Earth orbit view",
+      "visual_2": "space station cupola window Earth",
       "mood": "peaceful"
     }
   ]
@@ -787,6 +775,19 @@ _BGM_DESTINATION_MAP: dict[str, str] = {
     "jakarta": "tropical", "yogyakarta": "cultural", "bandung": "tropical",
     "surabaya": "tropical", "medan": "tropical", "makassar": "tropical",
     "manado": "tropical", "komodo": "ambient", "flores": "ambient",
+    # 🤖 Electronic / Tech & Future custom topics
+    "ai": "electronic", "artificial intelligence": "electronic", "robot": "electronic",
+    "tech": "electronic", "code": "electronic", "future": "electronic", "cyber": "electronic",
+    "computer": "electronic", "software": "electronic", "hacker": "electronic",
+    # 🚀 Ambient / Space, Nature & Science custom topics
+    "space": "ambient", "astronaut": "ambient", "cosmos": "ambient", "universe": "ambient",
+    "moon": "ambient", "mars": "ambient", "star": "ambient", "ocean": "ambient",
+    "nature": "ambient", "forest": "ambient", "mountain": "ambient", "volcano": "ambient",
+    # ☕ Lo-fi / Study & Chill custom topics
+    "study": "lofi", "chill": "lofi", "cafe": "lofi", "cozy": "lofi", "relax": "lofi",
+    "work": "lofi", "focus": "lofi", "reading": "lofi", "aesthetic": "lofi",
+    # 🎸 Acoustic / Fitness, Sports & Travel
+    "fitness": "acoustic", "workout": "acoustic", "car": "electronic", "speed": "electronic",
 }
 
 # Fallback mood if destination not in map
@@ -827,26 +828,22 @@ class ContentBrain:
         print(f"Selected Topic: {topic}")
         return topic
 
-    def get_location_landmarks(self, location: str) -> list[str]:
-        """Discover 10 distinct, filmable iconic landmarks/spots for a given city.
+    def get_topic_anchors(self, topic: str) -> list[str]:
+        """Discover 10 distinct, filmable visual anchors/spots for ANY custom topic or location.
 
-        Returns a list of specific named places (mix of monuments, neighborhoods,
-        nature spots, markets, viewpoints) to be used as unique per-scene anchors.
+        Returns a list of specific physical items/places/scenes to be used as unique per-scene visual anchors.
         """
-        print(f"🗺️  Discovering iconic spots in: {location}...")
+        print(f"🎨 Discovering visual scenes for topic: '{topic}'...")
         prompt = (
-            f"You are a professional travel filmmaker planning a cinematic short video about {location}.\n"
-            f"List exactly 10 distinct, visually iconic, and FILMABLE locations or landmarks in {location}.\n"
+            f"You are a professional cinematographer creating a visual YouTube Short about '{topic}'.\n"
+            f"List exactly 10 distinct, visually stunning, and FILMABLE scenes, objects, or locations for '{topic}'.\n"
             "Rules:\n"
-            "- Each must be a SPECIFIC NAMED PLACE (not a generic description like 'a park' or 'a market').\n"
-            "- Include a variety: iconic monuments, historic neighborhoods, natural scenery, "
-            "modern skyline spots, cultural/food markets, waterfront/viewpoints.\n"
-            "- Prioritize places that have abundant stock footage on Pexels (famous, well-known spots).\n"
+            "- Each must be a SPECIFIC PHYSICAL SCENE, OBJECT, or LOCATION that can be found as stock video on Pexels.\n"
+            "- Use concrete English words describing physical objects (e.g. for 'Become an Astronaut': 'space shuttle launch pad', 'zero gravity underwater pool', 'astronaut spacesuit lab', 'mission control screen').\n"
             "- Return ONLY a JSON array of 10 strings. No explanation, no commentary.\n"
-            f"Example for Paris: [\"Eiffel Tower\", \"Montmartre\", \"Seine River\", "
-            f"\"Louvre Museum\", \"Champs-Elysées\", \"Notre-Dame Cathedral\", "
-            f"\"Palais Royal Garden\", \"Sacré-Cœur\", \"Marais District\", \"Arc de Triomphe\"]\n"
-            f"Now list 10 for: {location}"
+            f"Example for Paris: [\"Eiffel Tower\", \"Montmartre\", \"Seine River\", \"Louvre Museum\", \"Champs-Elysées\", \"Notre-Dame Cathedral\", \"Palais Royal Garden\", \"Sacré-Cœur\", \"Marais District\", \"Arc de Triomphe\"]\n"
+            f"Example for Become an Astronaut: [\"Rocket launch pad\", \"Zero gravity underwater pool\", \"Spacesuit fitting lab\", \"Mission control screen\", \"Centrifuge training room\", \"Space station cupola window\", \"Astronaut helmet reflection\", \"Lunar rover moon\", \"Astronaut spacewalk Earth\", \"Spacecraft cockpit\"]\n"
+            f"Now list 10 for: '{topic}'"
         )
         client = _get_client()
         try:
@@ -858,13 +855,16 @@ class ContentBrain:
                     temperature=0.5,
                 ),
             )
-            landmarks = json.loads(response.text.strip())
-            if isinstance(landmarks, list) and landmarks:
-                print(f"  ✅ Found {len(landmarks)} iconic spots: {', '.join(landmarks)}")
-                return landmarks
+            anchors = json.loads(response.text.strip())
+            if isinstance(anchors, list) and anchors:
+                print(f"  ✅ Found {len(anchors)} visual anchors: {', '.join(anchors)}")
+                return anchors
         except Exception as error:
-            print(f"  ⚠️  Landmark discovery failed: {error}. Using generic scenery approach.")
+            print(f"  ⚠️  Visual anchor discovery failed: {error}. Using generic scenery approach.")
         return []
+
+    # Alias for backward compatibility
+    get_location_landmarks = get_topic_anchors
 
     def generate_script(self, topic: str, category_key: str = "1",
                         landmarks: list[str] | None = None, **kwargs):
