@@ -18,4 +18,4 @@ assets/final/*
 !assets/**/.gitkeep
 
 # Metadata output
-final_short_metadata.txt
+!assets/final/final_short_metadata.txt
