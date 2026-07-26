@@ -3,8 +3,19 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+
+# Generated video output files (can be large — don't commit to GitHub)
+*.mp4
+*.mov
+*.avi
+*.mkv
+
+# Generated assets (temp, clips, renders)
 assets/audio_clips/*
 assets/video_clips/*
 assets/temp/*
 assets/final/*
 !assets/**/.gitkeep
+
+# Metadata output
+final_short_metadata.txt
