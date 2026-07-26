@@ -867,7 +867,7 @@ class ContentBrain:
         return []
 
     def generate_script(self, topic: str, category_key: str = "1",
-                        landmarks: list[str] | None = None):
+                        landmarks: list[str] | None = None, **kwargs):
         """Generate a full script + SEO metadata, then sanitize visual queries."""
         print(f"Writing script for: {topic}...")
         category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])

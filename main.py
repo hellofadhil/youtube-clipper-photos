@@ -1,7 +1,16 @@
 import asyncio
+import importlib
 import os
 import shutil
 import sys
+
+# Auto-reload submodules when executed in interactive environments (e.g. Google Colab)
+for _mod_name in ["modules.brain", "modules.audio", "modules.composer", "modules.asset_manager"]:
+    if _mod_name in sys.modules:
+        try:
+            importlib.reload(sys.modules[_mod_name])
+        except Exception:
+            pass
 
 from modules.asset_manager import AssetManager
 from modules.audio import AudioEngine
