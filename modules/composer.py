@@ -201,15 +201,21 @@ class Composer:
     def process_scene(self, scene: dict, video_pair: Sequence[str | None]) -> str | None:
         """Render one narration scene using stock footage only.
 
-        Avatar injection was deliberately removed. Missing A/B entries heal by
-        reusing whichever clip is available.
+        Supports two modes:
+        - Standard: narration voice (audio_path) + optional animated subtitles (ass_path).
+        - BGM-only: audio_path is None; a silent audio track is generated so the
+          scene MP4 is still valid. Background music is mixed in later during stitch.
         """
         scene_id = scene["id"]
-        audio_path = Path(scene["audio_path"])
+        audio_path = scene.get("audio_path")
+        if audio_path:
+            audio_path = Path(audio_path)
         total_duration = max(0.1, float(scene["duration"]))
         output_path = self.temp_dir / f"scene_{scene_id}.mp4"
 
-        if not audio_path.is_file():
+        bgm_only = audio_path is None
+
+        if not bgm_only and not audio_path.is_file():
             print(f"❌ Scene {scene_id}: audio missing: {audio_path}")
             return None
 
@@ -247,8 +253,28 @@ class Composer:
                 escaped_ass = str(Path(ass_path).resolve()).replace("\\", "/").replace(":", "\\:")
                 video_stream = video_stream.filter("subtitles", filename=escaped_ass)
 
-            input_audio = ffmpeg.input(str(audio_path))
-            audio_stream = self._prepared_audio_input(input_audio)
+            # Build audio stream: real narration or a silent tone for BGM-only scenes
+            if bgm_only:
+                # Generate a silent audio stream matching scene duration
+                audio_stream = (
+                    ffmpeg
+                    .input(
+                        "anullsrc=channel_layout=stereo:sample_rate=48000",
+                        format="lavfi",
+                        t=total_duration,
+                    )
+                    .audio
+                    .filter("aresample", self.AUDIO_SAMPLE_RATE)
+                    .filter(
+                        "aformat",
+                        sample_fmts="fltp",
+                        sample_rates=self.AUDIO_SAMPLE_RATE,
+                        channel_layouts="stereo",
+                    )
+                )
+            else:
+                input_audio = ffmpeg.input(str(audio_path))
+                audio_stream = self._prepared_audio_input(input_audio)
 
             self._safe_unlink(output_path)
             command = (

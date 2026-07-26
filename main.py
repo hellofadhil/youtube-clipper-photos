@@ -5,7 +5,7 @@ import sys
 
 from modules.asset_manager import AssetManager
 from modules.audio import AudioEngine
-from modules.brain import ContentBrain
+from modules.brain import ContentBrain, TOPIC_CATEGORIES
 from modules.composer import Composer
 
 
@@ -37,9 +37,6 @@ def clean_cache():
     print("✨ Workspace clean!")
 
 
-
-
-
 def render_colab_player(video_path: str):
     """Render an embedded HTML5 video player in Google Colab output cell."""
     try:
@@ -64,6 +61,24 @@ def render_colab_player(video_path: str):
         pass
 
 
+def display_category_menu():
+    """Print the interactive topic category menu and return the user's choice."""
+    print("\n" + "=" * 65)
+    print("🎬  PILIH KATEGORI KONTEN VIDEO")
+    print("=" * 65)
+    for key, cat in TOPIC_CATEGORIES.items():
+        print(f"  [{key}] {cat['name']}")
+        print(f"       {cat['description']}")
+    print("=" * 65)
+    choice = input("➡️  Masukkan nomor kategori (default: 1): ").strip()
+    if choice not in TOPIC_CATEGORIES:
+        print(f"⚠️  Pilihan tidak dikenal, menggunakan kategori 1 (Dark History).")
+        choice = "1"
+    selected = TOPIC_CATEGORIES[choice]
+    print(f"\n✅ Kategori dipilih: {selected['name']}\n")
+    return choice
+
+
 async def main():
     print("🚀 STARTING AUTOMATION...\n")
 
@@ -72,12 +87,35 @@ async def main():
     script = None
     topic = None
 
-    # Interactive Topic & Script Generation Loop
+    # ── Category selection ──────────────────────────────────────────────────
+    if auto_yes:
+        # In non-interactive mode default to category 1 (Dark History)
+        # or allow override via env var CONTENT_CATEGORY (e.g. "9" for Scenery)
+        category_key = os.getenv("CONTENT_CATEGORY", "1")
+        if category_key not in TOPIC_CATEGORIES:
+            category_key = "1"
+        custom_location = os.getenv("SCENERY_LOCATION", "").strip() or None
+    else:
+        category_key = display_category_menu()
+        custom_location = None
+        if TOPIC_CATEGORIES[category_key]["mode"] == "scenery":
+            loc = input(
+                "📍 Masukkan nama lokasi/destinasi (kosongkan untuk acak dari AI): "
+            ).strip()
+            custom_location = loc if loc else None
+
+    selected_category = TOPIC_CATEGORIES[category_key]
+    is_bgm_only = selected_category["mode"] == "scenery"
+
+    # ── Interactive Topic & Script Generation Loop ───────────────────────────
     while True:
         print("🧠 Creating Prompt & Generating Topic...")
         try:
-            topic = brain.get_trending_topic()
-            script = brain.generate_script(topic)
+            topic = brain.get_trending_topic(
+                category_key=category_key,
+                custom_location=custom_location,
+            )
+            script = brain.generate_script(topic, category_key=category_key)
         except Exception as error:
             print(f"❌ Brain Error: {error}")
             return
@@ -100,15 +138,18 @@ async def main():
             metadata = {}
             scenes = script if isinstance(script, list) else []
 
-        # Display Topic, SEO Metadata & Script Preview to User
+        # ── Display Topic, SEO Metadata & Script Preview ──────────────────
         print("\n" + "=" * 65)
-        print(f"📌 TOPIK TERPILIH: {topic}")
+        print(f"📌 TOPIK TERPILIH : {topic}")
+        print(f"🎭 MODE           : {selected_category['name']}")
+        if is_bgm_only:
+            print("🎵 AUDIO MODE    : Background Music Only (No Voice / No Subtitle)")
         if metadata:
-            print(f"🏷️ JUDUL VIRAL   : {metadata.get('title', '-')}")
+            print(f"🏷️  JUDUL VIRAL   : {metadata.get('title', '-')}")
             print(f"📝 DESKRIPSI     : {metadata.get('description', '-')}")
-            print(f"3️⃣ HASHTAGS      : {metadata.get('hashtags', '-')}")
+            print(f"3️⃣  HASHTAGS      : {metadata.get('hashtags', '-')}")
         print("=" * 65)
-        print("📜 SKRIP & ANATOMI SCENE:")
+        print("📜 SCENE VISUAL PLAN:")
         for scene in scenes:
             scene_id = scene.get("id", "-")
             mood = scene.get("mood", "N/A")
@@ -116,7 +157,10 @@ async def main():
             v1 = scene.get("visual_1", "-")
             v2 = scene.get("visual_2", "-")
             print(f"  [Scene {scene_id}] (Mood: {mood})")
-            print(f"   💬 Narasi  : \"{text}\"")
+            if text:
+                print(f"   💬 Narasi  : \"{text}\"")
+            else:
+                print(f"   🎵 Narasi  : (BGM only — tidak ada narasi)")
             print(f"   🎬 Visual 1: {v1}")
             print(f"   🎬 Visual 2: {v2}")
             print("  " + "-" * 55)
@@ -129,22 +173,28 @@ async def main():
         # Interactive Confirmation 1: Want to make this video?
         confirm_video = input("❓ Apakah kamu ingin membuat video ini? (y/n): ").strip().lower()
         if confirm_video in ["y", "yes"]:
-            print("\n🎬 Memulai proses pembuatan audio, visual, dan render video...")
+            print("\n🎬 Memulai proses pembuatan visual dan render video...")
             break
         else:
             # Interactive Confirmation 2: Want to generate a new topic?
             confirm_new_topic = input("🔄 Apakah kamu mau generate topik baru? (y/n): ").strip().lower()
             if confirm_new_topic in ["y", "yes"]:
+                # Allow changing location for scenery mode on regeneration
+                if is_bgm_only:
+                    loc = input(
+                        "📍 Masukkan nama lokasi baru (kosongkan untuk acak dari AI): "
+                    ).strip()
+                    custom_location = loc if loc else None
                 print("\n🔄 Generasi ulang topik baru...\n")
                 continue
             else:
                 print("\n👋 Pembuatan video dibatalkan oleh pengguna. Sampai jumpa!")
                 return
 
-    # Render Pipeline
+    # ── Render Pipeline ──────────────────────────────────────────────────────
     audio_engine = AudioEngine()
     try:
-        scenes = await audio_engine.process_script(scenes)
+        scenes = await audio_engine.process_script(scenes, bgm_only=is_bgm_only)
     except Exception as error:
         print(f"❌ Audio Error: {error}")
         return
@@ -164,6 +214,8 @@ async def main():
             meta_path = os.path.join(os.path.dirname(final_video), "final_short_metadata.txt")
             with open(meta_path, "w", encoding="utf-8") as f:
                 f.write(f"TOPIC: {topic}\n\n")
+                f.write(f"CATEGORY: {selected_category['name']}\n\n")
+                f.write(f"AUDIO MODE: {'BGM Only' if is_bgm_only else 'Voice + BGM'}\n\n")
                 f.write(f"TITLE: {metadata.get('title', topic)}\n\n")
                 f.write(f"DESCRIPTION:\n{metadata.get('description', '')}\n\n")
                 f.write(f"HASHTAGS:\n{metadata.get('hashtags', '')}\n")
@@ -180,4 +232,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

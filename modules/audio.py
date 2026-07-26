@@ -146,21 +146,47 @@ class AudioEngine:
 
         return ass_path
 
-    async def process_script(self, script_data):
+    async def process_script(self, script_data, bgm_only: bool = False):
+        """Process all scenes.
+
+        When ``bgm_only`` is True (Travel Scenery mode), voice-over and subtitle
+        generation are skipped entirely. Each scene receives a default 4-second
+        visual duration and no audio_path/ass_path, which the Composer handles
+        gracefully by building a silent video track mixed with background music.
+        """
+        if bgm_only:
+            print(f"🎵 BGM-Only Mode: Skipping voice & subtitle for {len(script_data)} scenes.")
+            for scene in script_data:
+                scene["audio_path"] = None
+                scene["ass_path"] = None
+                scene["duration"] = float(os.getenv("SCENERY_SCENE_DURATION", "4"))
+                print(f"  ✅ Scene {scene['id']}: {scene['duration']}s (visual only, no narration)")
+            return script_data
+
         print(f"🎙️ Starting Audio & Subtitle Generation for {len(script_data)} scenes...")
         for scene in script_data:
             scene_id = scene["id"]
+            text = scene.get("text", "").strip()
+
+            # Scene-level BGM-only detection: empty text means skip TTS
+            if not text:
+                scene["audio_path"] = None
+                scene["ass_path"] = None
+                scene["duration"] = float(os.getenv("SCENERY_SCENE_DURATION", "4"))
+                print(f"  🎵 Scene {scene_id}: No narration text — BGM only ({scene['duration']}s).")
+                continue
+
             filename = f"voice_{scene_id}.mp3"
             try:
                 file_path, word_boundaries, ass_path = await self.generate_audio(
-                    scene["text"], filename
+                    text, filename
                 )
                 duration = self.get_audio_duration(file_path)
                 scene["audio_path"] = file_path
                 scene["duration"] = duration
 
                 generated_ass = self.create_ass_subtitles(
-                    word_boundaries, ass_path, duration, text_fallback=scene["text"]
+                    word_boundaries, ass_path, duration, text_fallback=text
                 )
                 scene["ass_path"] = generated_ass
                 print(
