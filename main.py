@@ -5,7 +5,7 @@ import sys
 
 from modules.asset_manager import AssetManager
 from modules.audio import AudioEngine
-from modules.brain import ContentBrain, TOPIC_CATEGORIES, get_bgm_mood
+from modules.brain import ContentBrain, TOPIC_CATEGORIES
 from modules.composer import Composer
 
 
@@ -118,7 +118,7 @@ async def main():
 
             # For scenery mode: discover iconic landmarks BEFORE script generation
             if is_bgm_only:
-                bgm_mood = get_bgm_mood(topic)
+                bgm_mood = brain.get_bgm_mood(topic)
                 print(f"🎵 BGM Mood matched: '{bgm_mood}'")
                 landmarks = brain.get_location_landmarks(topic)
 

@@ -803,6 +803,10 @@ def get_bgm_mood(topic: str) -> str:
 
 
 class ContentBrain:
+    def get_bgm_mood(self, topic: str) -> str:
+        """Return the recommended BGM mood/subfolder name for a destination."""
+        return get_bgm_mood(topic)
+
     def get_trending_topic(self, category_key: str = "1", custom_location: str = None):
         """Generate a topic based on the selected category."""
         category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
