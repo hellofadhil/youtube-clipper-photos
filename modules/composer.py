@@ -65,10 +65,15 @@ class Composer:
     def _is_vcodec_available(vcodec: str) -> bool:
         """Probe FFmpeg to check if a specific encoder (e.g. h264_nvenc) is usable."""
         try:
+            extra_opts = {}
+            if "nvenc" in vcodec.lower():
+                extra_opts["preset"] = "fast"
+            elif "qsv" in vcodec.lower():
+                extra_opts["preset"] = "veryfast"
             command = (
                 ffmpeg
                 .input("color=c=black:s=100x100:d=0.1", format="lavfi")
-                .output("pipe:", format="null", vcodec=vcodec)
+                .output("pipe:", format="null", vcodec=vcodec, **extra_opts)
                 .global_args("-hide_banner", "-loglevel", "error")
             )
             command.run(capture_stdout=True, capture_stderr=True)
