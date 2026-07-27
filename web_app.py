@@ -102,7 +102,9 @@ def generate_script_step(category_choice, custom_location, audio_mode_choice):
             f"📌 **Topic**: {topic}\n"
             f"🎭 **Category**: {selected_category['name']}\n"
             f"🎶 **BGM Mood**: {bgm_mood.upper() if bgm_mood else 'N/A'}\n"
-            f"🎙️ **Voice Profile**: {selected_category.get('voice', 'en-US-AvaNeural')}"
+            f"🎙️ **Voice Profile**: {selected_category.get('voice', 'en-US-AvaNeural')}\n\n"
+            f"💡 *Jika kamu suka topik ini, klik tombol **'🎬 Suka Topik Ini? Langsung Render Video!'** di bawah! "
+            f"Atau klik **'🔄 Generate Topik Baru'** jika ingin mencoba topik lain.*"
         )
 
         return (
@@ -192,7 +194,7 @@ async def render_video_step(
             scenes = json.loads(scenes_json_str)
 
         if not scenes:
-            return "❌ No scenes found for rendering.", None, ""
+            return "❌ No scenes found for rendering.", None, "", gr.update(visible=False), gr.update(visible=False)
 
         bgm_mood = brain_instance.get_bgm_mood(topic)
 
@@ -213,7 +215,7 @@ async def render_video_step(
         final_scene_paths = composer.render_all_scenes(scenes, video_pairs)
 
         if not final_scene_paths:
-            return "❌ Failed to render individual scene MP4s.", None, ""
+            return "❌ Failed to render individual scene MP4s.", None, "", gr.update(visible=False), gr.update(visible=False)
 
         # 4. Stitch with Transitions
         progress(0.9, desc="Stitching final 9:16 Shorts video with transitions...")
@@ -224,7 +226,7 @@ async def render_video_step(
         )
 
         if not final_video_path or not os.path.exists(final_video_path):
-            return "❌ Final stitching failed.", None, ""
+            return "❌ Final stitching failed.", None, "", gr.update(visible=False), gr.update(visible=False)
 
         # Save metadata text file
         meta_path = os.path.join(os.path.dirname(final_video_path), "final_short_metadata.txt")
@@ -247,10 +249,16 @@ async def render_video_step(
             f"📄 **Metadata Saved**: `{meta_path}`"
         )
 
-        return status_msg, final_video_path, meta_content
+        return (
+            status_msg,
+            final_video_path,
+            meta_content,
+            gr.update(visible=True, value=final_video_path),
+            gr.update(visible=True, value=meta_content),
+        )
 
     except Exception as err:
-        return f"❌ Render Error: {str(err)}", None, ""
+        return f"❌ Render Error: {str(err)}", None, "", gr.update(visible=False), gr.update(visible=False)
 
 
 def sync_render_video_wrapper(*args):
@@ -347,7 +355,9 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                         value="🎙️ Voice + Subtitles + BGM (Edutainment)",
                         interactive=True,
                     )
-                    gen_script_btn = gr.Button("🧠 Generate Topic & Script Plan", variant="primary", size="lg")
+                    with gr.Row():
+                        gen_script_btn = gr.Button("🧠 Generate Topic & Script", variant="primary", size="lg")
+                        regen_script_btn = gr.Button("🔄 Generate Topik Baru", variant="secondary", size="lg")
 
                 with gr.Column(scale=2):
                     status_box_1 = gr.Markdown(value="*Click button to generate topic & script...*")
@@ -356,6 +366,8 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                     title_input = gr.Textbox(label="🏷️ Viral Title", interactive=True)
                     desc_input = gr.TextArea(label="📝 SEO Description", interactive=True)
                     tags_input = gr.Textbox(label="3️⃣ Hashtags", interactive=True)
+
+                    direct_render_btn = gr.Button("🎬 Suka Topik Ini? Langsung Render Video!", variant="stop", size="lg")
 
             gr.Markdown("### 📜 Interactive Scene Plan Editor")
             gr.Markdown("*You can edit narration text or visual queries directly in the table below before rendering!*")
@@ -367,6 +379,19 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                 interactive=True,
                 wrap=True,
             )
+
+            gr.Markdown("---")
+            with gr.Row():
+                with gr.Column(scale=1):
+                    tab1_status_box = gr.Markdown(value="")
+                    tab1_metadata_output = gr.TextArea(label="📄 Saved SEO Metadata", interactive=False, visible=False)
+                with gr.Column(scale=1):
+                    tab1_video_player = gr.Video(
+                        label="🎥 Rendered Shorts Video (9:16)",
+                        interactive=False,
+                        autoplay=True,
+                        visible=False,
+                    )
 
         # ── TAB 2: FOOTAGE PREVIEW ──────────────────────────────────────────
         with gr.TabItem("2. 🖼️ Visual Footage Preview"):
@@ -406,6 +431,41 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
         ],
     )
 
+    regen_script_btn.click(
+        fn=generate_script_step,
+        inputs=[category_dropdown, custom_topic_input, audio_mode_radio],
+        outputs=[
+            status_box_1,
+            topic_output,
+            title_input,
+            desc_input,
+            tags_input,
+            scenes_json_state,
+            scenes_dataframe,
+        ],
+    )
+
+    direct_render_btn.click(
+        fn=sync_render_video_wrapper,
+        inputs=[
+            category_dropdown,
+            topic_output,
+            title_input,
+            desc_input,
+            tags_input,
+            audio_mode_radio,
+            scenes_json_state,
+            scenes_dataframe,
+        ],
+        outputs=[
+            status_box_1,
+            final_video_player,
+            metadata_output,
+            tab1_video_player,
+            tab1_metadata_output,
+        ],
+    )
+
     fetch_assets_btn.click(
         fn=fetch_assets_step,
         inputs=[scenes_json_state, scenes_dataframe],
@@ -424,7 +484,13 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             scenes_json_state,
             scenes_dataframe,
         ],
-        outputs=[status_box_3, final_video_player, metadata_output],
+        outputs=[
+            status_box_3,
+            final_video_player,
+            metadata_output,
+            tab1_video_player,
+            tab1_metadata_output,
+        ],
     )
 
 
