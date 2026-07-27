@@ -17,9 +17,10 @@ class AudioEngine:
         ass_filename = output_filename.rsplit(".", 1)[0] + ".ass"
         ass_path = os.path.join(self.output_dir, ass_filename)
 
+        rate_setting = os.getenv("TTS_RATE", "+0%")
         for attempt in range(retries):
             try:
-                communicate = edge_tts.Communicate(text, self.voice, rate="+10%")
+                communicate = edge_tts.Communicate(text, self.voice, rate=rate_setting)
                 word_boundaries = []
 
                 with open(output_path, "wb") as audio_file:
