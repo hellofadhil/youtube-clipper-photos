@@ -37,6 +37,14 @@ Copy `.env.example` to `.env`, then fill in Gemini and Pexels API keys.
 
 ## Run
 
+### Option 1: Web Studio (GUI Dashboard)
+
+```bash
+python web_app.py
+```
+
+### Option 2: CLI Automation
+
 ```bash
 python main.py
 ```
