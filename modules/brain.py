@@ -1415,7 +1415,7 @@ Generate SEO metadata and exactly 7 fast-paced scenes following this STRICT 7-ST
 - Scene 1 [HOOK & OPEN LOOP]: Immediate brutal claim or mind-blowing consequence (0-2s) + Open Loop (2-5s). NEVER start with a date, location, or background history ("On December 26, 2004...", "In 1953..."). Reveal the most shocking consequence FIRST.
 - Scene 2 [CONTEXT / IDENTIFICATION]: Reveal the exact event, location, date, or origin story.
 - Scene 3 [SCALE & MEASUREMENTS]: Extreme physical scale and measurable data (distance, magnitude, speed, volume).
-- Scene 4 [MECHANISM]: How it physically happened (seabed displacement, chemical process, tectonic collision, atomic reaction).
+- Scene 4 [MECHANISM & PATTERN INTERRUPTER]: How it physically happened + a mid-script retention re-hook (e.g. "But the real danger began next...", "What researchers unscaled next changed everything..."). Prevents 30-second viewer drop-off!
 - Scene 5 [HUMAN & EMOTIONAL IMPACT]: Real-world human, environmental, or societal consequence. (DO NOT skip human impact; pure numbers without human context reduce emotional retention).
 - Scene 6 [PLANETARY & UNEXPECTED EFFECT]: Secondary mind-blowing consequence or unexpected revelation (axis shift, rotation change, deep space ripple, hidden secret).
 - Scene 7 [CLOSING & HYBRID CTA]: A memorable final statement or perspective shift + a high-converting Hybrid Call-To-Action (Engagement Question + Subscribe Hook). Scene 7 text MUST seamlessly end with a short provocative question to drive comment section debate AND a quick subscribe call (e.g. "What would you have done? Comment below and subscribe for more!", "Do you think this was an accident? Drop your thoughts below and subscribe!"). BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
@@ -1424,7 +1424,7 @@ Generate SEO metadata and exactly 7 fast-paced scenes following this STRICT 7-ST
 UNIVERSAL SCRIPT RULES (STRICT COMPLIANCE REQUIRED)
 ══════════════════════════════════════════════════
 TEXT RULES:
-- "text": Short spoken sentences, ideally 8-16 words per scene. Fast-paced, punchy narration.
+- "text": Short spoken sentences, STRICTLY 10 to 14 words per scene. Fast-paced, punchy narration perfectly timed for 5.5-second scenes.
 - ANTI-CLICHÉ HOOK: Scene 1 MUST NOT start with dates/locations or "What if I told you", "Did you know", "Have you ever wondered". Start IMMEDIATELY with the most surprising claim.
 - CONCRETE DATA & FACT SAFETY:
   * Distinguish total energy from seismic energy or disputed estimates.
@@ -1434,6 +1434,7 @@ TEXT RULES:
 
 VISUAL QUERY RULES (CRITICAL — TOPIC-LOCKED VISUALS & NEGATIVE INTENT):
 - "visual_1" & "visual_2": 2 DISTINCT Pexels stock video search queries per scene.
+- DYNAMIC ERA & SPECIFICITY GUARD: Visual search queries MUST describe exact physical objects, vehicles, locations, or equipment matching THAT scene's era. NEVER reuse cliché stock queries ('classified documents desk lamp', 'old newspaper archive') across multiple scripts unless explicitly discussing papers/archives.
 - TOPIC-LOCKED VISUAL REQUIREMENT: Every query MUST directly describe visual elements belonging to the topic phenomenon. NEVER switch to unrelated natural disasters (no volcanoes or tornadoes in earthquake scripts!).
 - 3-TIER VISUAL MATCHING:
   1. Priority 1: Direct literal visual match to the spoken narration.
