@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import re
 
 from dotenv import load_dotenv
@@ -485,26 +486,14 @@ TOPIC_CATEGORIES = {
             "Return ONLY the topic title. No quotes, no commentary."
         ),
         "visual_guide": (
-            "MIND-BLOWING SCIENCE — PEXELS VISUAL RULES:\n"
-            "BANNED WORDS (never use alone): 'quantum', 'energy', 'force', 'concept', 'abstract', "
-            "'phenomenon', 'glowing', 'infinite', 'cosmic'.\n"
-            "SUBSTITUTION MAP (use the RIGHT column):\n"
-            "  'quantum effect'         → 'laser beam laboratory blue'\n"
-            "  'energy field'           → 'lightning strike slow motion'\n"
-            "  'atomic structure'       → 'microscope macro science'\n"
-            "  'brain activity'         → 'brain MRI scan hospital'\n"
-            "  'cellular biology'       → 'cell division microscope closeup'\n"
-            "  'scientific concept'     → 'scientist laboratory coat'\n"
-            "  'glowing cells'          → 'microscope fluorescent laboratory'\n"
-            "  'neural network'         → 'neurons brain anatomy model'\n"
-            "SCENE 1 HOOK — pick ONE of: 'lightning strike slow motion', "
-            "'lava flow rock close', 'cell division microscope closeup', 'sun solar flare orange'.\n"
-            "VARIETY GUIDE across 7 scenes:\n"
-            "  - 2x macro/micro: 'cell microscope closeup', 'chemical reaction laboratory', 'DNA model'\n"
-            "  - 2x physics/space: 'laser beam laboratory', 'particle accelerator', 'telescope dome'\n"
-            "  - 2x biology: 'brain MRI scan', 'blood cells microscope', 'human body anatomy'\n"
-            "  - 1x dramatic nature: 'lightning storm sky', 'lava flow close', 'waterfall powerful'\n"
-            "ANTI-REPEAT RULE: every visual_1 and visual_2 across ALL scenes MUST be unique."
+            "MIND-BLOWING SCIENCE — DYNAMIC SCENE VISUAL RULES:\n"
+            "CRITICAL: Match visual search queries directly to the specific scientific equipment, physical objects, biological structures, or natural phenomenon mentioned in THAT scene's narration.\n"
+            "BANNED ABSTRACT WORDS (never alone): 'quantum', 'energy', 'force', 'concept', 'abstract', 'phenomenon', 'glowing', 'infinite'.\n"
+            "SPECIFIC VISUAL MATCHING EXAMPLES:\n"
+            "  - Brain/neurons → 'brain MRI scan hospital', 'neurons anatomy model', 'microscope brain tissue'\n"
+            "  - Physics/lasers → 'laser beam laboratory blue', 'particle accelerator lab', 'telescope dome night'\n"
+            "  - Biology/cells → 'cell division microscope closeup', 'DNA helix laboratory model', 'blood cells macro'\n"
+            "All 14 visual queries must be completely unique and concrete."
         ),
         "few_shot_example": """{
   "metadata": {
@@ -582,23 +571,14 @@ TOPIC_CATEGORIES = {
             "Return ONLY the topic title. No quotes, no commentary."
         ),
         "visual_guide": (
-            "DEEP SPACE — PEXELS VISUAL RULES:\n"
-            "BANNED WORDS (never use alone): 'void', 'cosmic', 'infinite', 'dark', 'eternal', 'beyond'.\n"
-            "SUBSTITUTION MAP (use the RIGHT column):\n"
-            "  'dark void space'        → 'black space stars distant'\n"
-            "  'cosmic energy'          → 'sun solar flare orange'\n"
-            "  'infinite universe'      → 'galaxy spiral stars wide'\n"
-            "  'black hole concept'     → 'galaxy center bright stars'\n"
-            "  'space darkness'         → 'night sky stars timelapse'\n"
-            "  'alien world'            → 'red planet surface barren'\n"
-            "SCENE 1 HOOK — pick ONE of: 'galaxy spiral stars', 'sun solar flare orange', "
-            "'asteroid space rocks', 'rocket launch fire night'.\n"
-            "VARIETY GUIDE across 7 scenes:\n"
-            "  - 2x space objects: 'star cluster nebula', 'galaxy spiral', 'comet tail space'\n"
-            "  - 2x Earth/human scale: 'Earth from orbit blue', 'astronaut spacewalk', 'telescope dome'\n"
-            "  - 2x dramatic events: 'meteor shower night sky', 'rocket launch fire', 'moon surface crater'\n"
-            "  - 1x planet surface: 'red planet surface barren', 'planet atmosphere clouds'\n"
-            "ANTI-REPEAT RULE: every visual_1 and visual_2 across ALL scenes MUST be unique."
+            "DEEP SPACE — DYNAMIC SCENE VISUAL RULES:\n"
+            "CRITICAL: Every visual query must describe real celestial objects, space technology, or astronomical equipment mentioned in THAT scene.\n"
+            "BANNED ABSTRACT WORDS (never alone): 'cosmic', 'void', 'infinite', 'space concept', 'mystery', 'eternal'.\n"
+            "SPECIFIC VISUAL MATCHING EXAMPLES:\n"
+            "  - Planets & Moons → 'planet Saturn rings space animation', 'moon crater surface orbital', 'mars rover landscape'\n"
+            "  - Spacecraft & Telescopes → 'astronaut spacewalk earth orbit', 'space shuttle launch pad', 'hubble space telescope render'\n"
+            "  - Deep Space → 'supernova explosion nebula space', 'starry sky galaxy space', 'black hole accretion disk 3d'\n"
+            "All 14 visual queries must be completely unique."
         ),
         "few_shot_example": """{
   "metadata": {
@@ -675,26 +655,14 @@ TOPIC_CATEGORIES = {
             "Return ONLY the topic title. No quotes, no commentary."
         ),
         "visual_guide": (
-            "UNEXPLAINED MYSTERIES — PEXELS VISUAL RULES (hardest category — follow closely):\n"
-            "BANNED WORDS (never use alone): 'mystery', 'mysterious', 'paranormal', 'eerie', 'creepy', "
-            "'haunted', 'supernatural', 'anomaly', 'unknown', 'cursed', 'darkness'.\n"
-            "SUBSTITUTION MAP (use the RIGHT column):\n"
-            "  'mysterious signal'      → 'radio telescope antenna night'\n"
-            "  'paranormal activity'    → 'dark corridor empty hallway'\n"
-            "  'mysterious ship'        → 'abandoned ship deck rusted'\n"
-            "  'eerie forest'           → 'fog forest road trees'\n"
-            "  'unknown creature'       → 'ocean waves dark storm'\n"
-            "  'dark mystery'           → 'storm lightning sea waves'\n"
-            "  'ancient anomaly'        → 'stone monument circle field'\n"
-            "  'haunted location'       → 'abandoned building interior'\n"
-            "SCENE 1 HOOK — pick ONE of: 'storm lightning dark sea', 'fog forest road', "
-            "'abandoned ship deck rusted', 'ocean waves storm aerial'.\n"
-            "VARIETY GUIDE across 7 scenes:\n"
-            "  - 2x atmospheric: 'fog forest road', 'storm dark clouds sea', 'lightning strike field'\n"
-            "  - 2x location-specific: 'radio telescope antenna', 'stone ruins field', 'old lighthouse sea'\n"
-            "  - 2x human/artifact: 'abandoned ship deck', 'old map document', 'archaeological site dig'\n"
-            "  - 1x ocean/nature: 'ocean horizon dark', 'underwater cave light', 'dense jungle trees'\n"
-            "ANTI-REPEAT RULE: every visual_1 and visual_2 across ALL scenes MUST be unique."
+            "UNEXPLAINED MYSTERIES — DYNAMIC SCENE VISUAL RULES:\n"
+            "CRITICAL: Match visual search queries to physical locations, artifacts, terrain, or records mentioned in THAT scene.\n"
+            "BANNED ABSTRACT WORDS (never alone): 'paranormal', 'supernatural', 'ghost', 'mystery', 'eerie', 'cursed'.\n"
+            "SPECIFIC VISUAL MATCHING EXAMPLES:\n"
+            "  - Disappearances/Vanishings → 'foggy abandoned forest aerial', 'abandoned ship ocean', 'vintage plane cockpit'\n"
+            "  - Ciphers/Artefacts → 'ancient stone inscription closeup', 'old handwritten manuscript', 'archaeological excavation site'\n"
+            "  - Geological/Acoustic → 'sonar screen underwater submarine', 'seismograph recording needle', 'cave entrance mountain'\n"
+            "All 14 visual queries must be completely unique."
         ),
         "few_shot_example": """{
   "metadata": {
@@ -771,26 +739,14 @@ TOPIC_CATEGORIES = {
             "Return ONLY the topic title. No quotes, no commentary."
         ),
         "visual_guide": (
-            "OCEAN SECRETS — PEXELS VISUAL RULES:\n"
-            "BANNED WORDS (never use alone): 'abyss', 'darkness', 'pressure', 'deep sea pressure', "
-            "'underwater concept', 'ocean mystery', 'deep darkness'.\n"
-            "SUBSTITUTION MAP (use the RIGHT column):\n"
-            "  'ocean abyss'            → 'deep ocean underwater blue rays'\n"
-            "  'underwater pressure'    → 'scuba diver deep underwater'\n"
-            "  'deep sea darkness'      → 'jellyfish underwater dark blue'\n"
-            "  'ocean mystery'          → 'shipwreck underwater coral'\n"
-            "  'deep sea creature'      → 'deep sea fish underwater dark'\n"
-            "  'underwater anomaly'     → 'submarine underwater vessel'\n"
-            "  'scientific cells'       → 'microscope laboratory closeup'\n"
-            "  'bioluminescent glow'    → 'jellyfish underwater blue light'\n"
-            "SCENE 1 HOOK — pick ONE of: 'deep ocean underwater blue rays', "
-            "'ocean waves aerial dark', 'ocean storm waves aerial', 'whale diving ocean deep'.\n"
-            "VARIETY GUIDE across 7 scenes:\n"
-            "  - 2x deep water: 'jellyfish underwater dark', 'deep sea fish underwater', 'coral reef colorful'\n"
-            "  - 2x surface/aerial: 'ocean waves aerial', 'ocean horizon sunset', 'ship ocean waves'\n"
-            "  - 2x creatures: 'whale diving ocean', 'shark swimming ocean', 'sea turtle ocean reef'\n"
-            "  - 1x science/lab: 'microscope laboratory closeup', 'sonar screen submarine'\n"
-            "ANTI-REPEAT RULE: every visual_1 and visual_2 across ALL scenes MUST be unique."
+            "OCEAN SECRETS — DYNAMIC SCENE VISUAL RULES:\n"
+            "CRITICAL: Every query must directly describe specific underwater environments, marine life, or ocean phenomena discussed in THAT scene.\n"
+            "BANNED WORDS (never alone): 'ocean mystery', 'deep blue', 'sea concept', 'surfer', 'resort', 'vacation'.\n"
+            "SPECIFIC VISUAL MATCHING EXAMPLES:\n"
+            "  - Deep Trenches & Seabed → 'dark ocean seabed rocks underwater', 'deep sea hydrothermal vent', 'underwater trench drone'\n"
+            "  - Marine Life → 'bioluminescent jellyfish underwater', 'giant squid ocean deep', 'deep sea anglerfish macro'\n"
+            "  - Submerged Structures → 'underwater ocean floor ruins', 'shipwreck ocean floor underwater', 'submarine sonar underwater'\n"
+            "All 14 visual queries must be completely unique."
         ),
         "few_shot_example": """{
   "metadata": {
@@ -868,25 +824,14 @@ TOPIC_CATEGORIES = {
             "Return ONLY the topic title. No quotes, no commentary."
         ),
         "visual_guide": (
-            "LOST CIVILIZATIONS — PEXELS VISUAL RULES:\n"
-            "BANNED WORDS (never use alone): 'ancient', 'lost', 'hidden', 'forgotten', 'mysterious', "
-            "'civilization', 'unknown culture', 'epic ruins'.\n"
-            "SUBSTITUTION MAP (use the RIGHT column):\n"
-            "  'ancient civilization'   → 'pyramid Egypt aerial sand'\n"
-            "  'lost city'              → 'jungle overgrown stone temple'\n"
-            "  'mysterious ruins'       → 'stone columns ancient Greece'\n"
-            "  'hidden temple'          → 'Angkor Wat aerial jungle'\n"
-            "  'ancient mystery'        → 'stone carving wall relief'\n"
-            "  'sunken city'            → 'underwater ruins coral dive'\n"
-            "  'impossible engineering' → 'large stone blocks wall construction'\n"
-            "SCENE 1 HOOK — pick ONE of: 'pyramid Egypt aerial sand', 'jungle overgrown stone temple', "
-            "'stone monument circle sunset', 'ancient ruins stone columns'.\n"
-            "VARIETY GUIDE across 7 scenes:\n"
-            "  - 2x iconic landmarks: 'pyramid Egypt sand aerial', 'sphinx Egypt desert', 'Angkor Wat aerial'\n"
-            "  - 2x construction detail: 'large stone wall blocks', 'stone carving relief', 'quarry stone massive'\n"
-            "  - 2x nature/jungle: 'jungle overgrown temple vines', 'dense jungle trees', 'forest ruins stones'\n"
-            "  - 1x underwater/special: 'underwater ruins coral', 'cave painting prehistoric', 'stone circle field'\n"
-            "ANTI-REPEAT RULE: every visual_1 and visual_2 across ALL scenes MUST be unique."
+            "LOST CIVILIZATIONS — DYNAMIC SCENE VISUAL RULES:\n"
+            "CRITICAL: Match visual search queries to specific ruins, architectural structures, artifacts, or landscapes mentioned in THAT scene.\n"
+            "BANNED WORDS (never alone): 'lost concept', 'mysterious ruins', 'ancient secret', 'modern city', 'traffic'.\n"
+            "SPECIFIC VISUAL MATCHING EXAMPLES:\n"
+            "  - Pyramids & Megaliths → 'mayan pyramid jungle aerial', 'egyptian pyramid desert sunset', 'stonehenge megalith aerial'\n"
+            "  - Submerged Cities → 'underwater ancient ruins stone', 'sunken city walls ocean floor', 'scuba diver ancient ruins'\n"
+            "  - Artifacts & Metal → 'antikythera mechanism artifact', 'ancient gold coins archaeological', 'clay tablet cuneiform'\n"
+            "All 14 visual queries must be completely unique."
         ),
         "few_shot_example": """{
   "metadata": {
@@ -965,30 +910,14 @@ TOPIC_CATEGORIES = {
             "Return ONLY the topic title. No quotes, no commentary."
         ),
         "visual_guide": (
-            "FUTURE TECHNOLOGY — PEXELS VISUAL RULES (most critical category for abstract avoidance):\n"
-            "BANNED WORDS (never use alone): 'quantum', 'nano', 'AI', 'digital', 'virtual', 'cyber', "
-            "'data', 'tech', 'innovation', 'futuristic', 'concept', 'visualization', 'hologram'.\n"
-            "GOLDEN SUBSTITUTION MAP — replace EVERY abstract tech term with a physical object:\n"
-            "  'AI / artificial intelligence' → 'computer screen code dark room'\n"
-            "  'quantum computing'            → 'server room blue lights corridor'\n"
-            "  'nano technology'              → 'microscope macro laboratory'\n"
-            "  'brain-computer interface'     → 'brain MRI scan hospital'\n"
-            "  'neural network'               → 'neurons brain anatomy model'\n"
-            "  'virtual reality'              → 'VR headset person wearing'\n"
-            "  'drone technology'             → 'drone flight aerial city'\n"
-            "  'robotics'                     → 'robot arm factory assembly'\n"
-            "  'biotech / stem cell'          → 'laboratory petri dish scientist'\n"
-            "  'space technology'             → 'rocket launch fire night'\n"
-            "  'battery / energy storage'     → 'electric car charging station'\n"
-            "  'genetic engineering'          → 'DNA helix model laboratory'\n"
-            "SCENE 1 HOOK — pick ONE of: 'robot arm factory assembly', 'brain MRI scan hospital', "
-            "'server room blue lights', 'rocket launch fire night'.\n"
-            "VARIETY GUIDE across 7 scenes — ALWAYS use physical objects:\n"
-            "  - 2x machines/robots: 'robot arm factory', 'humanoid robot machine', '3D printer layer'\n"
-            "  - 2x medical/bio: 'brain MRI scan', 'laboratory petri dish', 'DNA model laboratory'\n"
-            "  - 2x computing/tech: 'computer screen code', 'server room corridor', 'laptop programmer dark'\n"
-            "  - 1x energy/transport: 'electric car charging', 'solar panel field', 'drone aerial city'\n"
-            "ANTI-REPEAT RULE: every visual_1 and visual_2 across ALL scenes MUST be unique."
+            "FUTURE TECHNOLOGY — DYNAMIC SCENE VISUAL RULES:\n"
+            "CRITICAL: Every query must describe real hardware, laboratory equipment, chips, or robotic systems discussed in THAT scene.\n"
+            "BANNED WORDS (never alone): 'future concept', 'cyber', 'tech background', 'toy robot', 'sci fi costume'.\n"
+            "SPECIFIC VISUAL MATCHING EXAMPLES:\n"
+            "  - AI & Robotics → 'robot arm factory assembly', 'humanoid robot walking lab', '3d printer micro layer'\n"
+            "  - Biotech & Chips → 'microchip circuit board macro', 'brain MRI scan hospital', 'DNA model laboratory'\n"
+            "  - Computing & Energy → 'server room blue lights corridor', 'fusion reactor laboratory', 'quantum computer dilution refrigerator'\n"
+            "All 14 visual queries must be completely unique."
         ),
         "few_shot_example": """{
   "metadata": {
@@ -1278,6 +1207,68 @@ def get_bgm_mood(topic: str) -> str:
     return _BGM_DEFAULT_MOOD
 
 
+CATEGORY_DIVERSITY_ANGLES: dict[str, list[str]] = {
+    "1": [
+        "Ancient Empires & Lost Kingdoms (Roman, Egyptian, Persian, Mayan, Asian)",
+        "Medieval & Renaissance Secrets (1300s-1600s)",
+        "Maritime Disasters, Ghost Ships & Deep Sea Mysteries",
+        "Industrial Revolution & Technological Catastrophes (1800s-1910s)",
+        "World War I & World War II Forgotten Cover-ups (1914-1945)",
+        "Cold War Submarine, Arctic & Space Anomalies (1950s-1980s)",
+        "Modern Aviation & Scientific Expeditions (1990s-2020s)",
+    ],
+    "2": [
+        "Quantum Mechanics, Particle Physics & Multiverse Theories",
+        "Neuroscience, Memory, Consciousness & Human Brain Paradoxes",
+        "Extreme Biology, Extremophile Life & Cellular Immortality",
+        "Astrophysics, Black Holes, Time Dilation & Cosmic Relativity",
+        "Exotic Matter States, Thermodynamics & Energy Paradoxes",
+    ],
+    "3": [
+        "Black Holes, Event Horizons & Gravitational Singularities",
+        "Exoplanets, Alien Oceans & Atmospheric Habitability",
+        "Stellar Explosions, Supernovas & Gamma-Ray Bursts",
+        "Cosmic Microwave Background & Origins of the Universe",
+        "Deep Space Probes, Interstellar Telemetry & Kuiper Belt Mysteries",
+    ],
+    "4": [
+        "Historical Vanishings & Unsolved Disappearances",
+        "Geological Anomalies, Unexplained Acoustic Signals & Earth Vibrations",
+        "Cryptids, Subterranean Vaults & Uncharted Wilderness Regions",
+        "Decoded Ciphers, Mysterious Manuscripts & Out-Of-Place Artefacts",
+        "Atmospheric Anomalies, Ball Lightning & Unexplained Sky Phenomena",
+    ],
+    "5": [
+        "Deep Sea Trenches, Mariana Trench & Hadal Zone Discoveries",
+        "Submerged Ancient Structures & Underwater Hydrothermal Vents",
+        "Abyssal Marine Life, Bioluminescence & Deep Ocean Predators",
+        "Rogue Waves, Oceanic Vortexes & Underwater Volcanism",
+        "Uncharted Ocean Floors, Seabed Fault Lines & Sub-sea Canyons",
+    ],
+    "6": [
+        "Submerged Ancient Cities & Underwater Ruins",
+        "Megalithic Engineering, Pyramids & Astronomical Alignments",
+        "Forgotten Empires That Vanished Overnight (Indus Valley, Bronze Age Collapse)",
+        "Ancient Technology, Antikythera Mechanism & Lost Metallurgy",
+        "Underground Cities, Catacombs & Ancient Subterranean Tunnels",
+    ],
+    "7": [
+        "Brain-Computer Interfaces, Cybernetics & Neural Chips",
+        "Nuclear Fusion, Quantum Computing & Room-Temperature Superconductors",
+        "Autonomous AI Robotics, Swarm Intelligence & Synthetic Biology",
+        "Interstellar Propulsion, Antimatter Engines & Dyson Swarms",
+        "Biotechnology, Gene Editing & Reversing Biological Aging",
+    ],
+    "8": [
+        "Mega-Earthquakes, Tectonic Faults & Crust Displacement",
+        "Cataclysmic Volcanic Super-Eruptions & Caldera Collapse",
+        "Mega-Tsunamis, Rogue Waves & Ocean Displacement",
+        "Extreme Meteorological Phenomena, Supercells & Atmospheric Rivers",
+        "Geological Ruptures, Sinkholes & Planetary Mass Shifts",
+    ],
+}
+
+
 class ContentBrain:
     def get_bgm_mood(self, topic: str) -> str:
         """Return the recommended BGM mood/subfolder name for a destination."""
@@ -1291,22 +1282,13 @@ class ContentBrain:
             return topic
 
         category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
-
-        era_angles = [
-            "Ancient Empires & Lost Kingdoms (Roman, Egyptian, Persian, Mayan, Asian)",
-            "Medieval & Renaissance Secrets (1300s-1600s)",
-            "Maritime Disasters, Ghost Ships & Deep Sea Mysteries",
-            "Industrial Revolution & Technological Catastrophes (1800s-1910s)",
-            "World War I & World War II Forgotten Cover-ups (1914-1945)",
-            "Cold War Submarine, Arctic & Space Anomalies (1950s-1980s)",
-            "Modern Aviation & Scientific Expeditions (1990s-2020s)",
-        ]
-        chosen_angle = random.choice(era_angles)
+        angles = CATEGORY_DIVERSITY_ANGLES.get(category_key, CATEGORY_DIVERSITY_ANGLES["1"])
+        chosen_angle = random.choice(angles)
 
         prompt = (
             f"{category['topic_prompt']}\n\n"
-            f"MANDATORY DIVERSITY FOCUS: For this generation, pick a unique topic specifically from this domain/era: '{chosen_angle}'. "
-            "Ensure the topic is different from previous runs (e.g. avoid repeating CIA MKUltra topics)."
+            f"MANDATORY DIVERSITY FOCUS: For this generation, pick a unique, highly specific topic from this angle/domain: '{chosen_angle}'. "
+            "Ensure the topic is fresh, distinct, and different from previous runs."
         )
 
         client = _get_client()
