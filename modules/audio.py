@@ -6,8 +6,9 @@ from mutagen.mp3 import MP3
 
 
 class AudioEngine:
-    def __init__(self, voice="en-US-AvaNeural"):
+    def __init__(self, voice="en-US-AvaNeural", rate="+0%"):
         self.voice = voice
+        self.rate = os.getenv("TTS_RATE") or rate
         self.output_dir = os.path.join(os.getcwd(), "assets", "audio_clips")
         os.makedirs(self.output_dir, exist_ok=True)
 
@@ -17,10 +18,9 @@ class AudioEngine:
         ass_filename = output_filename.rsplit(".", 1)[0] + ".ass"
         ass_path = os.path.join(self.output_dir, ass_filename)
 
-        rate_setting = os.getenv("TTS_RATE", "+0%")
         for attempt in range(retries):
             try:
-                communicate = edge_tts.Communicate(text, self.voice, rate=rate_setting)
+                communicate = edge_tts.Communicate(text, self.voice, rate=self.rate)
                 word_boundaries = []
 
                 with open(output_path, "wb") as audio_file:

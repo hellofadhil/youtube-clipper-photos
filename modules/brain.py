@@ -392,6 +392,7 @@ TOPIC_CATEGORIES = {
         "description": "Sejarah kelam & misteri masa lalu",
         "mode": "edutainment",
         "voice": "en-US-ChristopherNeural",
+        "rate": "+0%",
         "topic_prompt": (
             "Give me 1 highly engaging, specific topic for a viral Dark History YouTube Short. "
             "Focus on: real covert government operations, shocking war crimes that were covered up, "
@@ -476,6 +477,7 @@ TOPIC_CATEGORIES = {
         "description": "Fakta sains yang bikin otak meledak",
         "mode": "edutainment",
         "voice": "en-US-GuyNeural",
+        "rate": "+4%",
         "topic_prompt": (
             "Give me 1 mind-blowing, counterintuitive science topic for a viral YouTube Short. "
             "Focus on: paradoxes that break common sense, recent discoveries that overturned textbooks, "
@@ -561,6 +563,7 @@ TOPIC_CATEGORIES = {
         "description": "Misteri galaksi, black hole, dan alam semesta",
         "mode": "edutainment",
         "voice": "en-US-BrianNeural",
+        "rate": "+0%",
         "topic_prompt": (
             "Give me 1 awe-inspiring, fear-inducing cosmic topic for a viral Deep Space YouTube Short. "
             "Focus on: scale of the universe that makes humans feel insignificant, black hole behavior, "
@@ -647,6 +650,7 @@ TOPIC_CATEGORIES = {
         "description": "Fenomena & misteri tak terjawab",
         "mode": "edutainment",
         "voice": "en-US-EricNeural",
+        "rate": "+0%",
         "topic_prompt": (
             "Give me 1 genuinely unsettling, real-world unexplained mystery for a viral YouTube Short. "
             "Focus on: real disappearances with no explanation, physical anomalies science cannot explain, "
@@ -732,6 +736,7 @@ TOPIC_CATEGORIES = {
         "description": "Misteri dan keajaiban lautan dalam",
         "mode": "edutainment",
         "voice": "en-US-AndrewNeural",
+        "rate": "+0%",
         "topic_prompt": (
             "Give me 1 stunning, fear-inducing ocean secret for a viral YouTube Short. "
             "Focus on: creatures found at extreme depths with real measurements, underwater geological events, "
@@ -817,6 +822,7 @@ TOPIC_CATEGORIES = {
         "description": "Peradaban kuno yang hilang & tersembunyi",
         "mode": "edutainment",
         "voice": "en-US-SteffanNeural",
+        "rate": "+0%",
         "topic_prompt": (
             "Give me 1 stunning lost civilization topic for a viral YouTube Short. "
             "Focus on: specific ancient ruins found in impossible locations, construction techniques "
@@ -903,6 +909,7 @@ TOPIC_CATEGORIES = {
         "description": "Teknologi masa depan yang akan mengubah dunia",
         "mode": "edutainment",
         "voice": "en-US-RogerNeural",
+        "rate": "+4%",
         "topic_prompt": (
             "Give me 1 jaw-dropping, near-future technology topic for a viral YouTube Short. "
             "Focus on: real technologies already in prototype stage that will disrupt society, "
@@ -990,6 +997,7 @@ TOPIC_CATEGORIES = {
         "description": "Fenomena dan keajaiban alam ekstrem",
         "mode": "edutainment",
         "voice": "en-US-AvaNeural",
+        "rate": "+3%",
         "topic_prompt": (
             "Give me 1 breathtaking, extreme nature topic for a viral YouTube Short. "
             "Focus on: natural phenomena with exact measurable scale (size, speed, temperature, force), "
@@ -1083,6 +1091,7 @@ TOPIC_CATEGORIES = {
         "description": "Bebas tentukan topik/lokasi apa saja (misal: 'How AI works', 'Become an Astronaut', 'Paris', dll)",
         "mode": "custom",
         "voice": "en-US-AvaNeural",
+        "rate": "+0%",
         "topic_prompt": (
             "Give me 1 highly engaging, viral topic or destination for a YouTube Short. "
             "Return ONLY the topic title. No quotes, no commentary."

@@ -206,7 +206,8 @@ async def render_video_step(
         # 1. Process Audio & Narration
         progress(0.3, desc="Generating AI Voice Narration & ASS Subtitles...")
         category_voice = os.getenv("TTS_VOICE") or selected_category.get("voice", "en-US-AvaNeural")
-        audio_engine = AudioEngine(voice=category_voice)
+        category_rate = os.getenv("TTS_RATE") or selected_category.get("rate", "+0%")
+        audio_engine = AudioEngine(voice=category_voice, rate=category_rate)
         scenes = await audio_engine.process_script(scenes, bgm_only=is_bgm_only, title=title)
 
         # 2. Download Assets if missing
