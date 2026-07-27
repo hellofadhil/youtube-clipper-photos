@@ -234,7 +234,9 @@ async def main():
                 return
 
     # ── Render Pipeline ──────────────────────────────────────────────────────
-    audio_engine = AudioEngine()
+    category_voice = os.getenv("TTS_VOICE") or selected_category.get("voice", "en-US-AvaNeural")
+    print(f"🎙️ Using AI Voice profile: '{category_voice}' for {selected_category['name']}")
+    audio_engine = AudioEngine(voice=category_voice)
     try:
         scenes = await audio_engine.process_script(scenes, bgm_only=is_bgm_only, title=metadata.get("title", ""))
     except Exception as error:

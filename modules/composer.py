@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 import random
 from pathlib import Path
@@ -41,12 +42,62 @@ class Composer:
         self.transition_duration = max(0.0, float(transition_duration))
         self.keep_normalized_clips = keep_normalized_clips
         self.vcodec = os.getenv("FFMPEG_VCODEC", "libx264")
+        self.max_workers = int(os.getenv("MAX_CONCURRENT_WORKERS", "4"))
+
+        # Test if configured vcodec is supported by FFmpeg binary or hardware
+        if self.vcodec != "libx264":
+            if not self._is_vcodec_available(self.vcodec):
+                print(
+                    f"⚠️ GPU/Encoder '{self.vcodec}' is not supported by FFmpeg binary or hardware. "
+                    f"Falling back to 'libx264' (CPU)."
+                )
+                self.vcodec = "libx264"
+            else:
+                print(f"⚡ Hardware Acceleration Active: Using '{self.vcodec}' encoder.")
 
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         self.final_dir.mkdir(parents=True, exist_ok=True)
         self.normalized_dir.mkdir(parents=True, exist_ok=True)
 
         self.transitions = ["fade", "diagbr", "diagtl"]
+
+    @staticmethod
+    def _is_vcodec_available(vcodec: str) -> bool:
+        """Probe FFmpeg to check if a specific encoder (e.g. h264_nvenc) is usable."""
+        try:
+            command = (
+                ffmpeg
+                .input("color=c=black:s=100x100:d=0.1", format="lavfi")
+                .output("pipe:", format="null", vcodec=vcodec)
+                .global_args("-hide_banner", "-loglevel", "error")
+            )
+            command.run(capture_stdout=True, capture_stderr=True)
+            return True
+        except ffmpeg.Error:
+            return False
+
+    def _get_vcodec_options(self) -> dict:
+        """Return optimal codec options for CPU (libx264) or GPU (nvenc, qsv, videotoolbox)."""
+        options = {
+            "vcodec": self.vcodec,
+            "pix_fmt": "yuv420p",
+            "r": self.target_fps,
+            "movflags": "+faststart",
+            "video_track_timescale": self.target_fps * 1000,
+        }
+        vcodec_lower = self.vcodec.lower()
+        if "nvenc" in vcodec_lower:
+            options["preset"] = "p4"
+            options["cq"] = 18
+        elif "qsv" in vcodec_lower:
+            options["preset"] = "veryfast"
+            options["global_quality"] = 18
+        elif "videotoolbox" in vcodec_lower:
+            options["q"] = 60
+        else:
+            options["preset"] = "veryfast"
+            options["crf"] = 18
+        return options
 
     @staticmethod
     def _error_text(error: ffmpeg.Error) -> str:
@@ -120,19 +171,15 @@ class Composer:
         )
         video = self._video_filters(video)
 
+        output_opts = self._get_vcodec_options()
+        output_opts["an"] = None
+
         command = (
             ffmpeg
             .output(
                 video,
                 str(destination),
-                vcodec=self.vcodec,
-                preset="veryfast",
-                crf=18,
-                pix_fmt="yuv420p",
-                r=self.target_fps,
-                an=None,
-                movflags="+faststart",
-                video_track_timescale=self.target_fps * 1000,
+                **output_opts,
             )
             .global_args("-hide_banner", "-loglevel", "error")
         )
@@ -239,9 +286,12 @@ class Composer:
         normalized_b = self.normalized_dir / f"scene_{scene_id}_b.mp4"
 
         try:
-            print(f"⚙️ Processing Scene {scene_id}: normalized A/B stock footage")
-            self.normalize_clip(path_a, normalized_a, duration_a)
-            self.normalize_clip(path_b, normalized_b, duration_b)
+            print(f"⚙️ Processing Scene {scene_id}: parallel clip normalization (A/B)")
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                fut_a = executor.submit(self.normalize_clip, path_a, normalized_a, duration_a)
+                fut_b = executor.submit(self.normalize_clip, path_b, normalized_b, duration_b)
+                fut_a.result()
+                fut_b.result()
 
             input_a = ffmpeg.input(str(normalized_a))
             input_b = ffmpeg.input(str(normalized_b))
@@ -278,23 +328,21 @@ class Composer:
                 audio_stream = self._prepared_audio_input(input_audio)
 
             self._safe_unlink(output_path)
+            scene_opts = self._get_vcodec_options()
+            scene_opts.update({
+                "acodec": "aac",
+                "ar": self.AUDIO_SAMPLE_RATE,
+                "ac": 2,
+                "shortest": None,
+            })
+
             command = (
                 ffmpeg
                 .output(
                     video_stream,
                     audio_stream,
                     str(output_path),
-                    vcodec=self.vcodec,
-                    acodec="aac",
-                    preset="veryfast",
-                    crf=18,
-                    pix_fmt="yuv420p",
-                    r=self.target_fps,
-                    ar=self.AUDIO_SAMPLE_RATE,
-                    ac=2,
-                    shortest=None,
-                    movflags="+faststart",
-                    video_track_timescale=self.target_fps * 1000,
+                    **scene_opts,
                 )
                 .global_args("-hide_banner", "-loglevel", "error")
             )
@@ -318,10 +366,11 @@ class Composer:
         script_data: Iterable[dict],
         video_pairs: Sequence[Sequence[str | None] | None],
     ) -> list[str]:
-        """Render every scene without any avatar replacement logic."""
-        rendered_paths: list[str] = []
+        """Render scenes in parallel using ThreadPoolExecutor."""
+        script_list = list(script_data)
+        tasks = []
 
-        for index, scene in enumerate(script_data):
+        for index, scene in enumerate(script_list):
             if index >= len(video_pairs):
                 print(f"❌ Scene {scene.get('id', index + 1)}: video pair is missing.")
                 continue
@@ -331,11 +380,34 @@ class Composer:
                 print(f"❌ Scene {scene.get('id', index + 1)}: no visual asset available.")
                 continue
 
-            output_path = self.process_scene(scene, current_pair)
-            if output_path:
-                rendered_paths.append(output_path)
+            tasks.append((index, scene, current_pair))
 
-        return rendered_paths
+        if not tasks:
+            return []
+
+        max_workers = max(1, min(self.max_workers, len(tasks)))
+        print(f"⚡ Parallel rendering {len(tasks)} scene(s) with {max_workers} thread worker(s)...")
+
+        rendered_paths: list[str | None] = [None] * len(script_list)
+
+        def worker(idx: int, sc: dict, pair: Sequence[str | None]):
+            path = self.process_scene(sc, pair)
+            return idx, path
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                executor.submit(worker, idx, sc, pair)
+                for idx, sc, pair in tasks
+            ]
+            for future in as_completed(futures):
+                try:
+                    idx, path = future.result()
+                    if path:
+                        rendered_paths[idx] = path
+                except Exception as error:
+                    print(f"❌ Parallel render error: {error}")
+
+        return [p for p in rendered_paths if p is not None]
 
     def concatenate_with_transitions(
         self,
