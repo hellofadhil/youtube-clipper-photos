@@ -55,9 +55,9 @@ class AudioEngine:
 
     @staticmethod
     def create_ass_subtitles(
-        word_boundaries, ass_path, total_duration, text_fallback="", words_per_group=2
+        word_boundaries, ass_path, total_duration, text_fallback="", words_per_group=2, hook_title=""
     ):
-        """Create a modern YouTube Shorts smart-highlight ASS subtitle file."""
+        """Create a modern YouTube Shorts smart-highlight ASS subtitle file with optional Top Hook Banner."""
         if not word_boundaries and text_fallback:
             words = text_fallback.strip().split()
             if words:
@@ -91,7 +91,8 @@ class AudioEngine:
             "ScaledBorderAndShadow: yes\n\n"
             "[V4+ Styles]\n"
             "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Encoding, MarginL, MarginR, MarginV, Alignment, Outline, Shadow\n"
-            f"Style: Default,{fontname},72,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,90,90,550,2,5,3\n\n"
+            f"Style: Default,{fontname},72,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,90,90,550,2,5,3\n"
+            f"Style: HookHeader,{fontname},54,&H0000FFFF,&H00FFFFFF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,3,0,50,50,220,8,4,2\n\n"
             "[Events]\n"
             "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
         )
@@ -107,6 +108,16 @@ class AudioEngine:
             return f"{hrs}:{mins:02d}:{secs:02d}.{centisecs:02d}"
 
         events = []
+
+        if hook_title and hook_title.strip():
+            clean_hook = hook_title.upper().strip()
+            if len(clean_hook) > 42:
+                clean_hook = clean_hook[:40] + "..."
+            hook_end_time = min(3.5, total_duration)
+            events.append(
+                f"Dialogue: 0,0:00:00.00,{format_time(hook_end_time)},HookHeader,,0,0,0,,{clean_hook}"
+            )
+
         chunks = [
             word_boundaries[i : i + words_per_group]
             for i in range(0, len(word_boundaries), words_per_group)
@@ -148,14 +159,13 @@ class AudioEngine:
 
         return ass_path
 
-    async def process_script(self, script_data, bgm_only: bool = False):
-        """Process all scenes.
+    async def process_script(self, script_data, bgm_only: bool = False, title: str = ""):
+        """Process all scenes with optional top hook header for Scene 1."""
+        if isinstance(script_data, dict):
+            if not title:
+                title = script_data.get("metadata", {}).get("title", "")
+            script_data = script_data.get("scenes", [])
 
-        When ``bgm_only`` is True (Travel Scenery mode), voice-over and subtitle
-        generation are skipped entirely. Each scene receives a default 4-second
-        visual duration and no audio_path/ass_path, which the Composer handles
-        gracefully by building a silent video track mixed with background music.
-        """
         if bgm_only:
             print(f"🎵 BGM-Only Mode: Skipping voice & subtitle for {len(script_data)} scenes.")
             for scene in script_data:
@@ -187,8 +197,9 @@ class AudioEngine:
                 scene["audio_path"] = file_path
                 scene["duration"] = duration
 
+                hook_to_pass = title if scene_id == 1 else ""
                 generated_ass = self.create_ass_subtitles(
-                    word_boundaries, ass_path, duration, text_fallback=text
+                    word_boundaries, ass_path, duration, text_fallback=text, hook_title=hook_to_pass
                 )
                 scene["ass_path"] = generated_ass
                 print(
@@ -198,4 +209,3 @@ class AudioEngine:
             except Exception as error:
                 print(f"❌ Skipping Scene {scene_id} due to audio/subtitle error: {error}")
         return script_data
-

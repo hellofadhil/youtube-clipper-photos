@@ -236,7 +236,7 @@ async def main():
     # ── Render Pipeline ──────────────────────────────────────────────────────
     audio_engine = AudioEngine()
     try:
-        scenes = await audio_engine.process_script(scenes, bgm_only=is_bgm_only)
+        scenes = await audio_engine.process_script(scenes, bgm_only=is_bgm_only, title=metadata.get("title", ""))
     except Exception as error:
         print(f"❌ Audio Error: {error}")
         return
