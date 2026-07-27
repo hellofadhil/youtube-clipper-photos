@@ -59,11 +59,12 @@ def _is_abstract_query(query: str, category_key: str = "1") -> bool:
         if word in category_negatives:
             return True
 
-    # Check contextually misleading terms (e.g. compass for Earth axis)
-    if "axis" in query_lower:
-        for term in _MISLEADING_TOPIC_TERMS["axis"]:
-            if term in query_lower:
-                return True
+    # Check contextually misleading terms (e.g. compass for Earth axis/rotation)
+    for context_term, blocked_terms in _MISLEADING_TOPIC_TERMS.items():
+        if context_term in query_lower:
+            for term in blocked_terms:
+                if term in query_lower:
+                    return True
 
     concrete_words = [w for w in words if w not in _ABSTRACT_TERMS and len(w) > 2]
     return len(concrete_words) < _MIN_CONCRETE_WORDS
