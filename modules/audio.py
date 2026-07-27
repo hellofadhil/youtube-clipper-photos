@@ -82,6 +82,13 @@ class AudioEngine:
         }
 
         fontname = os.getenv("SUBTITLE_FONT", "Impact")
+        watermark_text = os.getenv("WATERMARK_TEXT", "")
+
+        watermark_style_line = (
+            f"Style: Watermark,Arial,34,&H70FFFFFF,&H00000000,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,30,30,140,2,2,1\n"
+            if watermark_text and watermark_text.strip()
+            else ""
+        )
 
         header = (
             "[Script Info]\n"
@@ -92,7 +99,8 @@ class AudioEngine:
             "[V4+ Styles]\n"
             "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Encoding, MarginL, MarginR, MarginV, Alignment, Outline, Shadow\n"
             f"Style: Default,{fontname},72,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,90,90,550,2,5,3\n"
-            f"Style: HookHeader,{fontname},54,&H0000FFFF,&H00FFFFFF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,3,0,50,50,220,8,4,2\n\n"
+            f"Style: HookHeader,{fontname},54,&H0000FFFF,&H00FFFFFF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,3,0,50,50,220,8,4,2\n"
+            f"{watermark_style_line}\n"
             "[Events]\n"
             "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
         )
@@ -108,6 +116,11 @@ class AudioEngine:
             return f"{hrs}:{mins:02d}:{secs:02d}.{centisecs:02d}"
 
         events = []
+
+        if watermark_text and watermark_text.strip():
+            events.append(
+                f"Dialogue: 0,0:00:00.00,{format_time(total_duration)},Watermark,,0,0,0,,{watermark_text.strip()}"
+            )
 
         if hook_title and hook_title.strip():
             clean_hook = hook_title.upper().strip()
