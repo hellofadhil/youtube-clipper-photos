@@ -5,11 +5,48 @@ import re
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Visual Query Validator — Auto-detect & replace abstract Pexels queries
+# Structured Output Schemas (Pydantic)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class MetadataOutput(BaseModel):
+    title: str
+    description: str
+    hashtags: str
+
+
+class SceneOutput(BaseModel):
+    id: int
+    text: str
+    visual_1: str
+    visual_2: str
+    mood: str
+
+
+class EdutainmentOutput(BaseModel):
+    metadata: MetadataOutput
+    scenes: list[SceneOutput] = Field(min_length=7, max_length=7)
+
+
+class ScenerySceneOutput(BaseModel):
+    id: int
+    text: str = ""
+    visual_1: str
+    visual_2: str
+    mood: str
+
+
+class SceneryOutput(BaseModel):
+    metadata: MetadataOutput
+    scenes: list[ScenerySceneOutput] = Field(min_length=8, max_length=8)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Visual Query Validator — Context-Aware & Topic-Locked Pexels Sanitizer
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Words that cause Pexels to return irrelevant or zero results
@@ -42,82 +79,296 @@ _MISLEADING_TOPIC_TERMS = {
     "rotation": {"compass", "clock gears"},
 }
 
-# Minimum number of NON-abstract concrete words required in a query
-_MIN_CONCRETE_WORDS = 1
+# Topic-locked event profiles for specific natural phenomena
+EVENT_VISUAL_RULES: dict[str, dict] = {
+    "earthquake": {
+        "context_terms": {
+            "earthquake", "quake", "seismic", "tectonic",
+            "fault", "rupture", "megathrust", "sumatra",
+        },
+        "blocked_terms": {
+            "tornado", "hurricane", "cyclone",
+            "volcano", "volcanic", "lava",
+            "wildfire", "lion", "surfer", "surfing",
+        },
+        "fallbacks": [
+            "seismograph needle shaking close up",
+            "earthquake damaged road aerial",
+            "tectonic fault cracked ground",
+            "dark ocean aerial view",
+            "underwater ocean floor rocks",
+            "damaged coastal buildings aerial",
+        ],
+    },
+    "tsunami": {
+        "context_terms": {
+            "tsunami", "seabed", "ocean floor",
+            "coastline", "coastal", "wave", "flood",
+        },
+        "blocked_terms": {
+            "tornado", "hurricane", "volcano",
+            "lava", "wildfire", "surfer",
+            "surfing", "calm beach", "vacation",
+        },
+        "fallbacks": [
+            "violent ocean waves aerial",
+            "flooded coastal city aerial",
+            "ocean water flooding buildings",
+            "dark stormy ocean aerial",
+            "underwater seabed rocks",
+            "destroyed coastline aerial",
+        ],
+    },
+    "earth_rotation": {
+        "context_terms": {
+            "earth axis", "figure axis", "rotation",
+            "length of day", "microseconds",
+            "planetary mass",
+        },
+        "blocked_terms": {
+            "compass", "magnetic field",
+            "clock gears", "tornado", "lava",
+        },
+        "fallbacks": [
+            "planet Earth slowly rotating in space",
+            "Earth from orbit blue planet",
+            "planet Earth rotation scientific animation",
+            "Earth globe axis animation",
+        ],
+    },
+    "tornado": {
+        "context_terms": {
+            "tornado", "funnel cloud", "twister",
+        },
+        "blocked_terms": {
+            "earthquake", "seismograph",
+            "volcano", "lava", "tsunami",
+        },
+        "fallbacks": [
+            "tornado funnel road field",
+            "tornado storm clouds landscape",
+            "funnel cloud rural field",
+        ],
+    },
+    "volcano": {
+        "context_terms": {
+            "volcano", "volcanic", "eruption",
+            "magma", "lava",
+        },
+        "blocked_terms": {
+            "tornado", "hurricane", "tsunami",
+            "seismograph needle",
+        },
+        "fallbacks": [
+            "volcanic eruption ash cloud",
+            "lava flow rock close up",
+            "volcano crater aerial",
+        ],
+    },
+}
+
+# Fallback pools by category for general queries
+_VISUAL_FALLBACK_POOLS: dict[str, list[str]] = {
+    "1": [
+        "old historical document closeup",
+        "vintage map aerial view",
+        "ancient stone ruins aerial",
+        "historical archive documents",
+        "old vintage manuscript reading",
+    ],
+    "2": [
+        "laboratory science experiment closeup",
+        "dna helix 3d render",
+        "microscope view scientific",
+        "physics lab equipment scientist",
+        "scientific formula calculation board",
+    ],
+    "3": [
+        "planet earth space rotation",
+        "starry sky galaxy space",
+        "deep space nebula telemetry",
+        "astronaut spacewalk earth orbit",
+        "space telescope deep field view",
+    ],
+    "4": [
+        "dark mysterious fog forest",
+        "foggy abandoned hallway dark",
+        "vintage black and white photo",
+        "old mysterious ancient stone",
+        "mysterious shadow corridor",
+    ],
+    "5": [
+        "deep ocean water underwater",
+        "ocean floor rocks aerial",
+        "dark ocean waves aerial",
+        "underwater coral reef fish",
+        "stormy sea waves aerial dark",
+    ],
+    "6": [
+        "ancient stone temple aerial",
+        "archeological excavation ruins",
+        "ancient city ruins drone",
+        "desert pyramid sunset aerial",
+        "lost ancient stone wall ruin",
+    ],
+    "7": [
+        "robot artificial intelligence lab",
+        "futuristic server room lights",
+        "hologram technology interface",
+        "microchip circuit board macro",
+        "futuristic computer code screen",
+    ],
+    "8": [
+        "stormy ocean waves aerial",
+        "earthquake cracked ground",
+        "dark clouds storm landscape",
+        "seismograph needle shaking close up",
+        "planet Earth slowly rotating in space",
+    ],
+}
 
 
-def _is_abstract_query(query: str, category_key: str = "1") -> bool:
-    """Return True if the query is too abstract, Pexels-unfriendly, or contextually negative."""
-    query_lower = query.lower()
-    words = re.findall(r"[a-z]+", query_lower)
-    if not words:
-        return True
+def _normalize_text(value: str) -> str:
+    """Normalize text into lowercase alphanumeric space-separated words."""
+    return " ".join(re.findall(r"[a-z0-9]+", value.lower()))
 
-    # Check category-specific negative terms
+
+def _contains_any_phrase(value: str, phrases: set[str] | list[str] | frozenset[str]) -> bool:
+    """Return True if any multi-word or single-word phrase is contained in normalized value."""
+    normalized_value = _normalize_text(value)
+    return any(
+        _normalize_text(phrase) in normalized_value
+        for phrase in phrases
+        if phrase and phrase.strip()
+    )
+
+
+def _detect_event_profiles(topic: str, narration: str) -> list[dict]:
+    """Identify matching event profiles from topic and scene narration text."""
+    context = _normalize_text(f"{topic} {narration}")
+    matches = []
+    for profile in EVENT_VISUAL_RULES.values():
+        if any(
+            _normalize_text(term) in context
+            for term in profile["context_terms"]
+        ):
+            matches.append(profile)
+    return matches
+
+
+def _get_visual_issue(
+    query: str,
+    narration: str = "",
+    topic: str = "",
+    category_key: str = "1",
+) -> str | None:
+    """Check query against phrase negatives, semantic event conflicts, misleading terms, and word counts."""
+    query_stripped = query.strip()
+    if not query_stripped:
+        return "empty"
+
+    # 1. Multi-word phrase matching against category negatives
     category_negatives = CATEGORY_NEGATIVE_TERMS.get(category_key, set())
-    for word in words:
-        if word in category_negatives:
-            return True
+    if _contains_any_phrase(query_stripped, category_negatives):
+        return "category_conflict"
 
-    # Check contextually misleading terms (e.g. compass for Earth axis/rotation)
+    # 2. Topic/Narration context event profile conflict checking
+    profiles = _detect_event_profiles(topic, narration)
+    for profile in profiles:
+        if _contains_any_phrase(query_stripped, profile["blocked_terms"]):
+            return "semantic_conflict"
+
+    # 3. Misleading topic terms check
+    context_text = f"{topic} {narration}".lower()
+    query_lower = query_stripped.lower()
     for context_term, blocked_terms in _MISLEADING_TOPIC_TERMS.items():
-        if context_term in query_lower:
-            for term in blocked_terms:
-                if term in query_lower:
-                    return True
+        if context_term in context_text:
+            if any(term in query_lower for term in blocked_terms):
+                return "misleading_scientific_conflict"
 
-    concrete_words = [w for w in words if w not in _ABSTRACT_TERMS and len(w) > 2]
-    return len(concrete_words) < _MIN_CONCRETE_WORDS
+    # 4. Concrete word count check
+    query_normalized = _normalize_text(query_stripped)
+    words = re.findall(r"[a-z]+", query_normalized)
+    concrete_words = [
+        w for w in words
+        if w not in _ABSTRACT_TERMS and len(w) > 2
+    ]
+
+    if len(concrete_words) < 2:
+        return "too_abstract"
+
+    return None
 
 
-def _sanitize_visual_queries(script: dict, category_key: str) -> dict:
+def _is_abstract_query(
+    query: str,
+    category_key: str = "1",
+    narration: str = "",
+    topic: str = "",
+) -> bool:
+    """Return True if the query is invalid, conflicting, or abstract (kept for backward compatibility)."""
+    return _get_visual_issue(query, narration=narration, topic=topic, category_key=category_key) is not None
+
+
+def _sanitize_visual_queries(
+    script: dict,
+    category_key: str = "1",
+    topic: str = "",
+) -> dict:
     """Post-process all visual_1 / visual_2 fields in script scenes.
 
-    Replaces abstract or Pexels-unfriendly queries with concrete fallbacks
-    from the category's fallback pool, cycling through the pool to keep variety.
-    Also removes duplicate queries within the same scene and across adjacent scenes.
+    Replaces abstract, conflicting, or duplicate Pexels queries with concrete fallbacks
+    from topic-locked event profiles or category fallback pools.
     """
     if not isinstance(script, dict) or "scenes" not in script:
         return script
 
-    fallback_pool = _VISUAL_FALLBACK_POOLS.get(category_key, _VISUAL_FALLBACK_POOLS["1"])
+    cat_fallback_pool = _VISUAL_FALLBACK_POOLS.get(category_key, _VISUAL_FALLBACK_POOLS["1"])
     fallback_index = 0
     replaced_count = 0
     seen_queries: set[str] = set()
 
-    def next_fallback(exclude: set[str]) -> str:
-        nonlocal fallback_index
-        for _ in range(len(fallback_pool)):
-            candidate = fallback_pool[fallback_index % len(fallback_pool)]
-            fallback_index += 1
-            if candidate not in exclude:
-                return candidate
-        # All exhausted — just return the next one
-        result = fallback_pool[fallback_index % len(fallback_pool)]
-        fallback_index += 1
-        return result
-
     for scene in script["scenes"]:
+        narration = scene.get("text", "")
+        profiles = _detect_event_profiles(topic, narration)
+
+        # Prioritize fallbacks matching the detected event profile
+        event_fallbacks = []
+        for p in profiles:
+            event_fallbacks.extend(p.get("fallbacks", []))
+        scene_fallback_pool = event_fallbacks if event_fallbacks else cat_fallback_pool
+
+        def next_fallback(exclude: set[str]) -> str:
+            nonlocal fallback_index
+            # Try scene/event specific fallbacks first
+            for _ in range(len(scene_fallback_pool)):
+                candidate = scene_fallback_pool[fallback_index % len(scene_fallback_pool)]
+                fallback_index += 1
+                if candidate not in exclude:
+                    return candidate
+            # Fallback to category pool if scene pool exhausted
+            for _ in range(len(cat_fallback_pool)):
+                candidate = cat_fallback_pool[fallback_index % len(cat_fallback_pool)]
+                fallback_index += 1
+                if candidate not in exclude:
+                    return candidate
+            result = cat_fallback_pool[fallback_index % len(cat_fallback_pool)]
+            fallback_index += 1
+            return result
+
         scene_used: set[str] = set()
         for key in ("visual_1", "visual_2"):
             original = scene.get(key, "").strip()
-            if not original:
-                replacement = next_fallback(seen_queries | scene_used)
-                scene[key] = replacement
-                scene_used.add(replacement)
-                seen_queries.add(replacement)
-                replaced_count += 1
-                print(f"  🔧 Scene {scene.get('id','?')} {key}: (empty) → '{replacement}'")
-                continue
+            issue = _get_visual_issue(original, narration=narration, topic=topic, category_key=category_key)
+            is_dup = original in seen_queries
 
-            needs_replace = _is_abstract_query(original, category_key=category_key) or original in seen_queries
-            if needs_replace:
+            if not original or issue is not None or is_dup:
                 replacement = next_fallback(seen_queries | scene_used)
                 scene[key] = replacement
                 scene_used.add(replacement)
                 seen_queries.add(replacement)
                 replaced_count += 1
-                reason = "duplicate" if original in seen_queries else "abstract/context_conflict"
+                reason = "empty" if not original else ("duplicate" if is_dup else issue)
                 print(f"  🔧 Scene {scene.get('id','?')} {key} [{reason}]: '{original}' → '{replacement}'")
             else:
                 scene_used.add(original)
@@ -825,22 +1076,20 @@ TOPIC_CATEGORIES = {
             "Return ONLY the topic title. No quotes, no commentary."
         ),
         "visual_guide": (
-            "EXTREME NATURE — PEXELS VISUAL RULES (best category for Pexels footage availability):\n"
-            "BANNED WORDS & SCENERY: 'extreme', 'powerful', 'epic', 'amazing', 'incredible', "
-            "'phenomenon', 'force of nature', 'nature concept', 'surfer', 'surfing', 'calm beach', 'compass'.\n"
-            "SUBSTITUTION MAP (use the RIGHT column):\n"
-            "  'extreme weather'        → 'tornado funnel road field'\n"
-            "  'nature force'           → 'violent ocean waves aerial dark'\n"
-            "  'tsunami wave'           → 'tsunami wave shore dark'\n"
-            "  'axis shift'             → 'earth axis rotation space animation'\n"
-            "SCENE 1 HOOK — pick ONE of: 'volcanic eruption lava close', 'tornado funnel road', "
-            "'lightning strike storm night', 'violent ocean waves aerial dark', 'earth axis rotation space animation'.\n"
-            "VARIETY GUIDE across 7 scenes:\n"
-            "  - 2x weather/geological: 'tornado road field', 'hurricane aerial storm', 'earthquake crack ground'\n"
-            "  - 2x volcanic/fire: 'volcanic eruption lava', 'lava flow rock ocean', 'wildfire forest flames'\n"
-            "  - 2x wildlife/disaster: 'tsunami wave shore dark', 'flooded city street aerial water', 'lion hunting prey'\n"
-            "  - 1x space/earth: 'earth axis rotation space animation', 'planet earth space rotation'\n"
-            "ANTI-REPEAT RULE: every visual_1 and visual_2 across ALL scenes MUST be unique."
+            "EXTREME NATURE — TOPIC-LOCKED VISUAL RULES:\n"
+            "CRITICAL TOPIC LOCK:\n"
+            "- Every visual must directly belong to the exact phenomenon discussed.\n"
+            "- Do not add visual variety by switching to unrelated disasters.\n"
+            "- If the topic is an earthquake, NEVER use tornadoes, hurricanes, "
+            "volcanoes, lava, wildfire, lightning, or unrelated wildlife unless "
+            "the narration explicitly mentions them.\n"
+            "- If the topic is a tsunami, prioritize ocean displacement, coastal flooding, "
+            "seismographs, underwater terrain, damaged coastlines, and Earth visuals.\n"
+            "- Visual diversity must come from shot type, angle, distance, and lighting, "
+            "not from changing the natural phenomenon.\n"
+            "- Use literal stock footage first, scientifically accurate representations second, "
+            "and atmospheric footage only when still contextually relevant.\n"
+            "- All 14 visual queries must be unique."
         ),
         "few_shot_example": """{
   "metadata": {
@@ -1114,10 +1363,10 @@ class ContentBrain:
         else:
             script = self._generate_edutainment_script(topic, category)
 
-        # ── Post-process: replace abstract / duplicate visual queries ──────
+        # ── Post-process: replace abstract / duplicate / conflicting visual queries ──────
         if script:
             print("🔍 Running visual query sanitizer...")
-            script = _sanitize_visual_queries(script, category_key)
+            script = _sanitize_visual_queries(script, category_key, topic=topic)
 
         return script
 
@@ -1154,11 +1403,12 @@ TEXT RULES:
   * Never exaggerate numbers solely for virality or present single disputed figures as absolute facts.
 - JSON SAFETY: Do NOT use double quotes (") inside text fields. Use single quotes (').
 
-VISUAL QUERY RULES (CRITICAL — 3-TIER SYSTEM & NEGATIVE INTENT):
+VISUAL QUERY RULES (CRITICAL — TOPIC-LOCKED VISUALS & NEGATIVE INTENT):
 - "visual_1" & "visual_2": 2 DISTINCT Pexels stock video search queries per scene.
+- TOPIC-LOCKED VISUAL REQUIREMENT: Every query MUST directly describe visual elements belonging to the topic phenomenon. NEVER switch to unrelated natural disasters (no volcanoes or tornadoes in earthquake scripts!).
 - 3-TIER VISUAL MATCHING:
   1. Priority 1: Direct literal visual match to the spoken narration.
-  2. Priority 3: Scientifically accurate visual representation.
+  2. Priority 2: Scientifically accurate visual representation.
   3. Priority 3: Atmospheric supporting visual.
 - AVOID MISLEADING METAPHORS: Never use metaphorical footage that creates scientific misunderstanding (e.g., DO NOT use a spinning magnetic compass for Earth axis/rotation shifts; use 'Earth axis rotation space animation').
 - BANNED NEGATIVE INTENT VISUALS — NEVER use:
@@ -1188,7 +1438,7 @@ FEW-SHOT EXAMPLE — match this JSON schema and narrative structure exactly:
 Now generate the FULL script for topic: "{topic}"
 Follow ALL rules above. Return ONLY valid JSON. No markdown. No commentary outside JSON.
 """
-        return self._call_gemini(prompt)
+        return self._call_gemini(prompt, schema=EdutainmentOutput)
 
     def _generate_scenery_script(self, topic: str, category: dict,
                                   landmarks: list[str]):
@@ -1265,31 +1515,45 @@ FEW-SHOT EXAMPLE (schema reference only — use your assigned landmarks above):
 Generate the FULL 8-scene script for: "{topic}"
 Return ONLY valid JSON. No markdown. No commentary outside JSON.
 """
-        return self._call_gemini(prompt)
+        return self._call_gemini(prompt, schema=SceneryOutput)
 
-    def _call_gemini(self, prompt: str):
+    def _call_gemini(self, prompt: str, schema=None):
         client = _get_client()
         try:
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.4,
+            )
+            if schema:
+                config.response_schema = schema
+
             response = client.models.generate_content(
                 model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
                 contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.75,
-                ),
+                config=config,
             )
             clean_text = response.text.strip()
+            if schema:
+                validated = schema.model_validate_json(clean_text)
+                return validated.model_dump()
             return json.loads(clean_text)
         except Exception as error:
             print(f"⚠️ Primary JSON generation issue: {error}. Falling back to standard mode...")
             response = client.models.generate_content(
                 model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
                 contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.4,
+                ),
             )
             clean_text = response.text.replace("```json", "").replace("```", "").strip()
             try:
+                if schema:
+                    validated = schema.model_validate_json(clean_text)
+                    return validated.model_dump()
                 return json.loads(clean_text)
-            except json.JSONDecodeError:
+            except Exception:
                 print("❌ Error parsing JSON. Raw output:")
                 print(clean_text)
                 return None
