@@ -401,23 +401,14 @@ TOPIC_CATEGORIES = {
             "Return ONLY the topic title. No quotes, no commentary."
         ),
         "visual_guide": (
-            "DARK HISTORY — PEXELS VISUAL RULES:\n"
-            "BANNED WORDS (never use alone): 'darkness', 'mystery', 'secret', 'hidden', 'unknown', 'evil', 'cursed'.\n"
-            "SUBSTITUTION MAP (use the RIGHT column):\n"
-            "  'secret documents'       → 'classified documents desk lamp'\n"
-            "  'dark history'           → 'battlefield soldiers smoke'\n"
-            "  'evil experiments'       → 'laboratory old equipment'\n"
-            "  'war mystery'            → 'warship ocean fire'\n"
-            "  'government conspiracy'  → 'government building exterior'\n"
-            "  'historical event'       → 'old newspaper archive'\n"
-            "SCENE 1 HOOK — pick ONE of: 'nuclear explosion black white', "
-            "'battlefield explosion smoke', 'warship fire ocean'.\n"
-            "VARIETY GUIDE across 7 scenes:\n"
-            "  - 2x war/military: 'soldiers trench war', 'tank battlefield', 'army march'\n"
-            "  - 2x institutional: 'laboratory old equipment', 'prison cell corridor', 'courtroom interior'\n"
-            "  - 2x document/archive: 'classified documents desk', 'old newspaper archive', 'typewriter paper'\n"
-            "  - 1x aftermath: 'ruins abandoned building', 'memorial grave', 'barbed wire fence'\n"
-            "ANTI-REPEAT RULE: every visual_1 and visual_2 across ALL scenes MUST be unique."
+            "DARK HISTORY — DYNAMIC SCENE VISUAL RULES:\n"
+            "CRITICAL: Match visual search queries directly to the specific objects, locations, equipment, or setting mentioned in the narration text of THAT scene.\n"
+            "DO NOT default to generic static terms ('classified documents desk lamp', 'old newspaper archive', 'barbed wire fence') unless that scene explicitly discusses documents or wire fences!\n"
+            "EXAMPLES OF SPECIFIC VISUAL MATCHING:\n"
+            "  - Spain H-Bomb accident → 'aircraft flying sky', 'bomber plane flight', 'mediterranean sea coastline aerial', 'scuba diver underwater search'\n"
+            "  - French village poisoning → 'vintage french village street', 'bakery bread oven', 'old hospital corridor', 'vintage laboratory glass'\n"
+            "  - Ancient Roman battle → 'roman colosseum ruins aerial', 'ancient stone wall ruins', 'armored soldiers march', 'ancient sword battlefield'\n"
+            "All 14 visual queries must be completely unique and specific to the event."
         ),
         "few_shot_example": """{
   "metadata": {
@@ -1300,14 +1291,34 @@ class ContentBrain:
             return topic
 
         category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
-        prompt = category["topic_prompt"]
+
+        era_angles = [
+            "Ancient Empires & Lost Kingdoms (Roman, Egyptian, Persian, Mayan, Asian)",
+            "Medieval & Renaissance Secrets (1300s-1600s)",
+            "Maritime Disasters, Ghost Ships & Deep Sea Mysteries",
+            "Industrial Revolution & Technological Catastrophes (1800s-1910s)",
+            "World War I & World War II Forgotten Cover-ups (1914-1945)",
+            "Cold War Submarine, Arctic & Space Anomalies (1950s-1980s)",
+            "Modern Aviation & Scientific Expeditions (1990s-2020s)",
+        ]
+        chosen_angle = random.choice(era_angles)
+
+        prompt = (
+            f"{category['topic_prompt']}\n\n"
+            f"MANDATORY DIVERSITY FOCUS: For this generation, pick a unique topic specifically from this domain/era: '{chosen_angle}'. "
+            "Ensure the topic is different from previous runs (e.g. avoid repeating CIA MKUltra topics)."
+        )
+
         client = _get_client()
         response = client.models.generate_content(
             model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
             contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.9,
+            ),
         )
         topic = response.text.strip().strip('"').strip("'")
-        print(f"Selected Topic: {topic}")
+        print(f"Selected Topic [{chosen_angle}]: {topic}")
         return topic
 
     def get_topic_anchors(self, topic: str) -> list[str]:
