@@ -1418,7 +1418,7 @@ Generate SEO metadata and exactly 7 fast-paced scenes following this STRICT 7-ST
 - Scene 4 [MECHANISM]: How it physically happened (seabed displacement, chemical process, tectonic collision, atomic reaction).
 - Scene 5 [HUMAN & EMOTIONAL IMPACT]: Real-world human, environmental, or societal consequence. (DO NOT skip human impact; pure numbers without human context reduce emotional retention).
 - Scene 6 [PLANETARY & UNEXPECTED EFFECT]: Secondary mind-blowing consequence or unexpected revelation (axis shift, rotation change, deep space ripple, hidden secret).
-- Scene 7 [CLOSING / PERSPECTIVE SHIFT]: A memorable final statement, perspective shift, or haunting reality check. BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
+- Scene 7 [CLOSING & HYBRID CTA]: A memorable final statement or perspective shift + a high-converting Hybrid Call-To-Action (Engagement Question + Subscribe Hook). Scene 7 text MUST seamlessly end with a short provocative question to drive comment section debate AND a quick subscribe call (e.g. "What would you have done? Comment below and subscribe for more!", "Do you think this was an accident? Drop your thoughts below and subscribe!"). BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
 
 ══════════════════════════════════════════════════
 UNIVERSAL SCRIPT RULES (STRICT COMPLIANCE REQUIRED)
