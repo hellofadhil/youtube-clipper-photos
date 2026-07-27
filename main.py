@@ -1,6 +1,7 @@
 import asyncio
 import importlib
 import os
+import re
 import shutil
 import sys
 
@@ -286,8 +287,22 @@ async def main():
             preview_video = composer.generate_preview(final_video)
             if preview_video:
                 render_colab_player(preview_video)
+
+            clean_cat_name = re.sub(r'[^\w\s-]', '', selected_category['name']).strip().replace(' ', '_')
+            return {
+                "status": "success",
+                "final_video": final_video,
+                "preview_video": preview_video,
+                "category_key": category_key,
+                "category_name": selected_category["name"],
+                "clean_category_name": clean_cat_name,
+                "topic": topic,
+                "metadata": metadata,
+                "metadata_path": meta_paths[0],
+            }
     else:
         print("❌ Failed to generate any scenes.")
+        return None
 
 
 if __name__ == "__main__":
