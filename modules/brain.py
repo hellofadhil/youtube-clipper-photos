@@ -1448,9 +1448,9 @@ VISUAL QUERY RULES (CRITICAL — TOPIC-LOCKED VISUALS & NEGATIVE INTENT):
 - ANTI-REPEAT: Every visual_1 and visual_2 across ALL scenes MUST be unique.
 
 METADATA RULES:
-- "title": Clean, ultra-punchy viral title (under 50 chars) focusing on the single core mind-blowing claim with 1-2 emojis. Avoid long documentary-style titles. (e.g. "The Earthquake That Moved the Entire Planet 🌍💥")
-- "description": 2-3 engaging sentences. Include the most shocking claim and cautious scientific estimate.
-- "hashtags": Exactly 5 viral hashtags relevant to this specific category.
+- "title": Clean, ultra-punchy viral title (under 50 chars) focusing on the single core mind-blowing claim with 1-2 emojis. Include concrete measurements or physical scale if applicable (e.g. "A Massive Pyramid Hidden 25 Meters Underwater 🌊🏛️").
+- "description": Exactly 2-3 engaging sentences. Sentence 1: Shocking core claim with specific location/event details and concrete numbers. Sentence 2: Physical/historical mechanism. Sentence 3: MUST end with an open-ended engagement question to drive comment section activity (e.g., "Is it a lost human civilization, or a creation of nature? What do you think?").
+- "hashtags": Exactly 5 viral hashtags. Must include: 1x #Shorts, 2x Category Niche (e.g. #History #Archaeology), 2x Specific Topic keywords (e.g. #Underwater #Yonaguni).
 
 ══════════════════════════════════════════════════
 CATEGORY-SPECIFIC VISUAL GUIDE:
