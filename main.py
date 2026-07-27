@@ -12,6 +12,11 @@ for _mod_name in ["modules.brain", "modules.audio", "modules.composer", "modules
         except Exception:
             pass
 
+# Auto-detect NVIDIA GPU if FFMPEG_VCODEC is not explicitly set
+if "FFMPEG_VCODEC" not in os.environ:
+    if shutil.which("nvidia-smi") or os.path.exists("/proc/driver/nvidia"):
+        os.environ["FFMPEG_VCODEC"] = "h264_nvenc"
+
 from modules.asset_manager import AssetManager
 from modules.audio import AudioEngine
 from modules.brain import ContentBrain, TOPIC_CATEGORIES
