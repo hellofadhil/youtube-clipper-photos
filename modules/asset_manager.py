@@ -23,8 +23,8 @@ class AssetManager:
         self.assets_dir = os.path.join(os.getcwd(), "assets", "video_clips")
         os.makedirs(self.assets_dir, exist_ok=True)
 
-    def search_pexels(self, query, duration_min=3):
-        """Search Pexels for portrait video clips."""
+    def search_pexels(self, query, duration_min=3, exclude_url=None):
+        """Search Pexels API for vertical/portrait videos."""
         if not self.pexels_api_key or not query or not query.strip():
             return None
 
@@ -62,6 +62,14 @@ class AssetManager:
                 v for v in videos if v.get("duration", 0) >= duration_min
             ] or videos
 
+            if exclude_url:
+                filtered = [
+                    c for c in candidates
+                    if not any(vf.get("link") == exclude_url for vf in c.get("video_files", []))
+                ]
+                if filtered:
+                    candidates = filtered
+
             selected_video = random.choice(candidates[:5])
             video_files = selected_video.get("video_files", [])
             if not video_files:
@@ -77,7 +85,7 @@ class AssetManager:
             print(f"❌ Error searching Pexels for '{query}': {error}")
             return None
 
-    def search_pixabay(self, query, duration_min=3):
+    def search_pixabay(self, query, duration_min=3, exclude_url=None):
         """Search Pixabay API for vertical/portrait videos as fallback."""
         if not self.pixabay_api_key or not query or not query.strip():
             return None
@@ -114,27 +122,29 @@ class AssetManager:
             # Select highest quality stream (large -> medium -> small)
             for size_key in ["large", "medium", "small"]:
                 if size_key in video_dict and video_dict[size_key].get("url"):
-                    return video_dict[size_key]["url"]
+                    url = video_dict[size_key]["url"]
+                    if not exclude_url or url != exclude_url:
+                        return url
 
             return None
         except Exception as error:
             print(f"❌ Error searching Pixabay for '{query}': {error}")
             return None
 
-    def search_video(self, query, duration_min=3, attempt=1):
+    def search_video(self, query, duration_min=3, attempt=1, exclude_url=None):
         """Search primary provider (Pexels) and fall back to secondary (Pixabay) with smart queries."""
         if not query or not query.strip():
             return None
 
         # Step 1: Try Pexels
-        url = self.search_pexels(query, duration_min=duration_min)
-        if url:
+        url = self.search_pexels(query, duration_min=duration_min, exclude_url=exclude_url)
+        if url and url != exclude_url:
             return url
 
         # Step 2: Try Pixabay fallback
         if self.pixabay_api_key:
-            url = self.search_pixabay(query, duration_min=duration_min)
-            if url:
+            url = self.search_pixabay(query, duration_min=duration_min, exclude_url=exclude_url)
+            if url and url != exclude_url:
                 return url
 
         # Step 3: Refined query attempt on both providers
@@ -143,7 +153,7 @@ class AssetManager:
             if cleaned_words and len(cleaned_words) < len(query.split()):
                 cleaned_query = " ".join(cleaned_words)
                 print(f"⚠️ Retrying Pexels/Pixabay with refined query: '{cleaned_query}'...")
-                return self.search_video(cleaned_query, duration_min=duration_min, attempt=2)
+                return self.search_video(cleaned_query, duration_min=duration_min, attempt=2, exclude_url=exclude_url)
 
         # Step 4: Broad fallback attempt on both providers
         if attempt <= 2:
@@ -155,7 +165,7 @@ class AssetManager:
             ]
             fallback_query = random.choice(broad_fallbacks)
             print(f"⚠️ Query '{query}' yielded 0 videos across providers. Trying broad fallback: '{fallback_query}'...")
-            return self.search_video(fallback_query, duration_min=duration_min, attempt=3)
+            return self.search_video(fallback_query, duration_min=duration_min, attempt=3, exclude_url=exclude_url)
 
         return None
 
@@ -205,14 +215,14 @@ class AssetManager:
             if alt_url_a:
                 path_a = self.download_video(alt_url_a, f"scene_{scene_id}_a_alt.mp4")
 
-        url_b = self.search_video(query_b)
+        url_b = self.search_video(query_b, exclude_url=url_a)
         path_b = self.download_video(url_b, f"scene_{scene_id}_b.mp4") if url_b else None
 
         # Replacement search for Clip B if initial search/download failed (PREVENTS DUPLICATED CLIP A!)
         if not path_b:
             print(f"⚠️ Scene {scene_id} Clip B failed for '{query_b}'. Running secondary replacement search to prevent clip duplication...")
             fallback_queries = ["galaxy deep space stars rotation", "cinematic technology render", "aerial drone mountain landscape"]
-            alt_url_b = self.search_video(random.choice(fallback_queries), attempt=3)
+            alt_url_b = self.search_video(random.choice(fallback_queries), attempt=3, exclude_url=url_a)
             if alt_url_b:
                 path_b = self.download_video(alt_url_b, f"scene_{scene_id}_b_alt.mp4")
 
