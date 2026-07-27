@@ -391,7 +391,7 @@ TOPIC_CATEGORIES = {
         "name": "🌍 Dark History",
         "description": "Sejarah kelam & misteri masa lalu",
         "mode": "edutainment",
-        "voice": "en-US-ChristopherNeural",
+        "voice": "en-US-AvaNeural",
         "rate": "+0%",
         "topic_prompt": (
             "Give me 1 highly engaging, specific topic for a viral Dark History YouTube Short. "
@@ -476,7 +476,7 @@ TOPIC_CATEGORIES = {
         "name": "🔬 Mind-Blowing Science",
         "description": "Fakta sains yang bikin otak meledak",
         "mode": "edutainment",
-        "voice": "en-US-GuyNeural",
+        "voice": "en-US-AvaNeural",
         "rate": "+4%",
         "topic_prompt": (
             "Give me 1 mind-blowing, counterintuitive science topic for a viral YouTube Short. "
@@ -562,7 +562,7 @@ TOPIC_CATEGORIES = {
         "name": "🌌 Deep Space & Cosmos",
         "description": "Misteri galaksi, black hole, dan alam semesta",
         "mode": "edutainment",
-        "voice": "en-US-BrianNeural",
+        "voice": "en-US-AvaNeural",
         "rate": "+0%",
         "topic_prompt": (
             "Give me 1 awe-inspiring, fear-inducing cosmic topic for a viral Deep Space YouTube Short. "
@@ -649,7 +649,7 @@ TOPIC_CATEGORIES = {
         "name": "👻 Unexplained Mysteries",
         "description": "Fenomena & misteri tak terjawab",
         "mode": "edutainment",
-        "voice": "en-US-EricNeural",
+        "voice": "en-US-AvaNeural",
         "rate": "+0%",
         "topic_prompt": (
             "Give me 1 genuinely unsettling, real-world unexplained mystery for a viral YouTube Short. "
@@ -735,7 +735,7 @@ TOPIC_CATEGORIES = {
         "name": "🌊 Ocean Secrets",
         "description": "Misteri dan keajaiban lautan dalam",
         "mode": "edutainment",
-        "voice": "en-US-AndrewNeural",
+        "voice": "en-US-AvaNeural",
         "rate": "+0%",
         "topic_prompt": (
             "Give me 1 stunning, fear-inducing ocean secret for a viral YouTube Short. "
@@ -821,7 +821,7 @@ TOPIC_CATEGORIES = {
         "name": "🏛️ Lost Civilizations",
         "description": "Peradaban kuno yang hilang & tersembunyi",
         "mode": "edutainment",
-        "voice": "en-US-SteffanNeural",
+        "voice": "en-US-AvaNeural",
         "rate": "+0%",
         "topic_prompt": (
             "Give me 1 stunning lost civilization topic for a viral YouTube Short. "
@@ -908,7 +908,7 @@ TOPIC_CATEGORIES = {
         "name": "🤖 Future Technology",
         "description": "Teknologi masa depan yang akan mengubah dunia",
         "mode": "edutainment",
-        "voice": "en-US-RogerNeural",
+        "voice": "en-US-AvaNeural",
         "rate": "+4%",
         "topic_prompt": (
             "Give me 1 jaw-dropping, near-future technology topic for a viral YouTube Short. "
