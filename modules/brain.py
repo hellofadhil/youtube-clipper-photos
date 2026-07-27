@@ -1370,18 +1370,45 @@ class ContentBrain:
 
         return script
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Private helpers
-    # ─────────────────────────────────────────────────────────────────────────
+    def verify_topic_facts(self, topic: str) -> str:
+        """Stage 1: Fact research & verification with Google Search grounding."""
+        print(f"🔬 Stage 1: Researching & verifying facts for '{topic}' via Google Search grounding...")
+        client = _get_client()
+        research_prompt = (
+            f"Research official, scientifically verified facts for the topic: '{topic}'.\n"
+            "Provide a concise fact sheet (3-5 bullet points) focusing on:\n"
+            "1. Exact measurable figures (distance, energy, time shift, speed, depth).\n"
+            "2. Distinguish estimated vs absolute facts.\n"
+            "3. Scientifically cautious wording for complex or disputed figures.\n"
+            "Keep it short and focused on high-accuracy data."
+        )
+        try:
+            grounding_tool = types.Tool(google_search=types.GoogleSearch())
+            response = client.models.generate_content(
+                model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
+                contents=research_prompt,
+                config=types.GenerateContentConfig(
+                    tools=[grounding_tool],
+                    temperature=0.2,
+                ),
+            )
+            fact_sheet = response.text.strip()
+            print("  ✅ Fact verification complete.")
+            return fact_sheet
+        except Exception as error:
+            print(f"  ⚠️ Fact research fallback (no web grounding): {error}")
+            return ""
 
     def _generate_edutainment_script(self, topic: str, category: dict):
         visual_guide = category.get("visual_guide", "")
         few_shot = category.get("few_shot_example", "")
+        fact_sheet = self.verify_topic_facts(topic)
+        fact_block = f"\nVERIFIED FACT SHEET (STRICT COMPLIANCE):\n{fact_sheet}\n" if fact_sheet else ""
 
         prompt = f"""
 You are the lead scriptwriter and YouTube SEO expert for a top-tier viral Edutainment channel.
 Topic: {topic}
-
+{fact_block}
 Generate SEO metadata and exactly 7 fast-paced scenes following this STRICT 7-STAGE RETENTION STRUCTURE:
 - Scene 1 [HOOK & OPEN LOOP]: Immediate brutal claim or mind-blowing consequence (0-2s) + Open Loop (2-5s). NEVER start with a date, location, or background history ("On December 26, 2004...", "In 1953..."). Reveal the most shocking consequence FIRST.
 - Scene 2 [CONTEXT / IDENTIFICATION]: Reveal the exact event, location, date, or origin story.

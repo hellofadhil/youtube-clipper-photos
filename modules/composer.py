@@ -40,6 +40,7 @@ class Composer:
         self.target_fps = int(target_fps)
         self.transition_duration = max(0.0, float(transition_duration))
         self.keep_normalized_clips = keep_normalized_clips
+        self.vcodec = os.getenv("FFMPEG_VCODEC", "libx264")
 
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         self.final_dir.mkdir(parents=True, exist_ok=True)
@@ -124,7 +125,7 @@ class Composer:
             .output(
                 video,
                 str(destination),
-                vcodec="libx264",
+                vcodec=self.vcodec,
                 preset="veryfast",
                 crf=18,
                 pix_fmt="yuv420p",
@@ -283,7 +284,7 @@ class Composer:
                     video_stream,
                     audio_stream,
                     str(output_path),
-                    vcodec="libx264",
+                    vcodec=self.vcodec,
                     acodec="aac",
                     preset="veryfast",
                     crf=18,
@@ -441,6 +442,7 @@ class Composer:
                 )
             )
             audio_stream = ffmpeg.filter([audio_stream, bgm_input], "amix", inputs=2, duration="first")
+            audio_stream = audio_stream.filter("loudnorm", I=-16, TP=-1.5, LRA=11)
         else:
             print("⚠️ No BGM files found. Add .mp3/.wav files to assets/bgm/ or assets/bgm/{mood}/ to enable background music.")
 
@@ -450,7 +452,7 @@ class Composer:
                 video_stream,
                 audio_stream,
                 str(output_path),
-                vcodec="libx264",
+                vcodec=self.vcodec,
                 acodec="aac",
                 preset="medium",
                 crf=18,
@@ -501,7 +503,7 @@ class Composer:
                     video,
                     audio,
                     str(output_path),
-                    vcodec="libx264",
+                    vcodec=self.vcodec,
                     acodec="aac",
                     preset="ultrafast",
                     crf=28,

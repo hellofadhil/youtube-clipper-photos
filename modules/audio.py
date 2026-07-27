@@ -81,6 +81,8 @@ class AudioEngine:
             "ARE", "WERE", "THAT", "THIS", "AS", "SO", "THAN"
         }
 
+        fontname = os.getenv("SUBTITLE_FONT", "Impact")
+
         header = (
             "[Script Info]\n"
             "ScriptType: v4.00+\n"
@@ -89,7 +91,7 @@ class AudioEngine:
             "ScaledBorderAndShadow: yes\n\n"
             "[V4+ Styles]\n"
             "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Encoding, MarginL, MarginR, MarginV, Alignment, Outline, Shadow\n"
-            "Style: Default,Arial,66,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,90,90,550,2,4,2\n\n"
+            f"Style: Default,{fontname},72,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,90,90,550,2,5,3\n\n"
             "[Events]\n"
             "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
         )
