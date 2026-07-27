@@ -197,15 +197,32 @@ class AssetManager:
         url_a = self.search_video(query_a)
         path_a = self.download_video(url_a, f"scene_{scene_id}_a.mp4") if url_a else None
 
+        # Replacement search for Clip A if initial search/download failed
+        if not path_a:
+            print(f"⚠️ Scene {scene_id} Clip A failed for '{query_a}'. Running secondary replacement search...")
+            fallback_queries = ["cinematic dark atmospheric landscape", "planet earth space aerial", "ocean underwater deep blue"]
+            alt_url_a = self.search_video(random.choice(fallback_queries), attempt=3)
+            if alt_url_a:
+                path_a = self.download_video(alt_url_a, f"scene_{scene_id}_a_alt.mp4")
+
         url_b = self.search_video(query_b)
         path_b = self.download_video(url_b, f"scene_{scene_id}_b.mp4") if url_b else None
 
+        # Replacement search for Clip B if initial search/download failed (PREVENTS DUPLICATED CLIP A!)
+        if not path_b:
+            print(f"⚠️ Scene {scene_id} Clip B failed for '{query_b}'. Running secondary replacement search to prevent clip duplication...")
+            fallback_queries = ["galaxy deep space stars rotation", "cinematic technology render", "aerial drone mountain landscape"]
+            alt_url_b = self.search_video(random.choice(fallback_queries), attempt=3)
+            if alt_url_b:
+                path_b = self.download_video(alt_url_b, f"scene_{scene_id}_b_alt.mp4")
+
+        # Absolute emergency fallback if even secondary replacement search fails
         if not path_a and path_b:
             path_a = path_b
-            print(f"⚠️ Scene {scene_id} Clip A missing. Using Clip B for both.")
+            print(f"⚠️ Emergency Failsafe: Scene {scene_id} Clip A unrecoverable. Reusing Clip B.")
         if not path_b and path_a:
             path_b = path_a
-            print(f"⚠️ Scene {scene_id} Clip B missing. Using Clip A for both.")
+            print(f"⚠️ Emergency Failsafe: Scene {scene_id} Clip B unrecoverable. Reusing Clip A.")
 
         if path_a and path_b:
             print(f"✅ Scene {scene_id} Ready (A + B).")
