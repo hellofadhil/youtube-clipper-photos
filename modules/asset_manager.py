@@ -1,5 +1,6 @@
 import os
 import random
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 from dotenv import load_dotenv
@@ -158,23 +159,35 @@ class AssetManager:
 
         return None
 
-    def download_video(self, url, filename):
+    def download_video(self, url, filename, retries=3):
         if not url:
             return None
         save_path = os.path.join(self.assets_dir, filename)
         if os.path.exists(save_path) and os.path.getsize(save_path) > 0:
             return save_path
-        try:
-            with requests.get(url, stream=True, timeout=30) as response:
-                response.raise_for_status()
-                with open(save_path, "wb") as output:
-                    for chunk in response.iter_content(chunk_size=16384):
-                        if chunk:
-                            output.write(chunk)
-            return save_path
-        except Exception as error:
-            print(f"❌ Error downloading {filename}: {error}")
-            return None
+
+        for attempt in range(1, retries + 1):
+            try:
+                with requests.get(url, stream=True, timeout=30) as response:
+                    response.raise_for_status()
+                    with open(save_path, "wb") as output:
+                        for chunk in response.iter_content(chunk_size=65536):
+                            if chunk:
+                                output.write(chunk)
+                if os.path.exists(save_path) and os.path.getsize(save_path) > 0:
+                    return save_path
+            except Exception as error:
+                if os.path.exists(save_path):
+                    try:
+                        os.unlink(save_path)
+                    except OSError:
+                        pass
+                if attempt < retries:
+                    print(f"⚠️ Chunk download interrupted for {filename} (Attempt {attempt}/{retries}): {error}. Retrying...")
+                    time.sleep(1)
+                else:
+                    print(f"❌ Error downloading {filename}: {error}")
+        return None
 
     def _process_scene_clips(self, scene):
         scene_id = scene["id"]
