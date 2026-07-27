@@ -485,7 +485,7 @@ class Composer:
             )
             current_duration = current_duration + next_duration - transition_duration
 
-        # ── BGM selection: mood subfolder → root fallback ─────────────────────
+        # ── BGM selection & Sidechain Ducking ─────────────────────────────────
         bgm_dir = Path.cwd() / "assets" / "bgm"
         bgm_files: list[Path] = []
 
@@ -497,18 +497,17 @@ class Composer:
                     print(f"🎵 BGM Mood: '{bgm_mood}' — found {len(bgm_files)} track(s) in {mood_dir.name}/")
 
         if not bgm_files and bgm_dir.is_dir():
-            # Root fallback: any mp3/wav directly inside assets/bgm/
             bgm_files = list(bgm_dir.glob("*.mp3")) + list(bgm_dir.glob("*.wav"))
             if bgm_files:
                 print(f"🎵 BGM Mood fallback: using root assets/bgm/ ({len(bgm_files)} track(s))")
 
         if bgm_files:
             bgm_path = random.choice(bgm_files)
-            print(f"🎵 Mixing BGM: {bgm_path.name} (Volume: 12%)")
+            print(f"🎵 Mixing BGM with Sidechain Audio Ducking: {bgm_path.name}")
             bgm_input = (
                 ffmpeg.input(str(bgm_path), stream_loop=-1)
                 .audio
-                .filter("volume", 0.12)
+                .filter("volume", 0.18)
                 .filter("atrim", duration=current_duration)
                 .filter("aresample", self.AUDIO_SAMPLE_RATE)
                 .filter(
@@ -518,7 +517,20 @@ class Composer:
                     channel_layouts="stereo",
                 )
             )
-            audio_stream = ffmpeg.filter([audio_stream, bgm_input], "amix", inputs=2, duration="first")
+            # Sidechaincompress dynamically lowers BGM volume when narrator speaks
+            try:
+                bgm_ducked = ffmpeg.filter(
+                    [bgm_input, audio_stream],
+                    "sidechaincompress",
+                    threshold=0.06,
+                    ratio=4,
+                    attack=15,
+                    release=250,
+                )
+                audio_stream = ffmpeg.filter([audio_stream, bgm_ducked], "amix", inputs=2, duration="first")
+            except Exception:
+                audio_stream = ffmpeg.filter([audio_stream, bgm_input], "amix", inputs=2, duration="first")
+
             audio_stream = audio_stream.filter("loudnorm", I=-16, TP=-1.5, LRA=11)
         else:
             print("⚠️ No BGM files found. Add .mp3/.wav files to assets/bgm/ or assets/bgm/{mood}/ to enable background music.")
