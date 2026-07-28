@@ -99,8 +99,8 @@ class AudioEngine:
             "ScaledBorderAndShadow: yes\n\n"
             "[V4+ Styles]\n"
             "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Encoding, MarginL, MarginR, MarginV, Alignment, Outline, Shadow\n"
-            f"Style: Default,{fontname},72,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,90,90,550,2,5,3\n"
-            f"Style: HookHeader,{fontname},54,&H0000FFFF,&H00FFFFFF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,3,0,50,50,220,8,4,2\n"
+            f"Style: Default,{fontname},76,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,90,90,560,2,6,3\n"
+            f"Style: HookHeader,{fontname},56,&H0000FFFF,&H00FFFFFF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,3,0,50,50,220,8,5,3\n"
             f"{watermark_style_line}\n"
             "[Events]\n"
             "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
@@ -155,10 +155,10 @@ class AudioEngine:
                 formatted_words = []
                 for j, item in enumerate(chunk):
                     w_text = item["word"].upper().replace('"', "").replace("'", "")
-                    # Highlight in bright yellow ONLY if it is the current word AND a key content word
-                    if j == i and w_text not in STOP_WORDS:
+                    # Highlight in bright yellow + Kinetic Pop scaling for active word
+                    if j == i:
                         formatted_words.append(
-                            f"{{\\c&H0000FFFF&}}{w_text}{{\\c&H00FFFFFF&}}"
+                            f"{{\\c&H0000FFFF&\\fscx112\\fscy112}}{w_text}{{\\c&H00FFFFFF&\\fscx100\\fscy100}}"
                         )
                     else:
                         formatted_words.append(w_text)

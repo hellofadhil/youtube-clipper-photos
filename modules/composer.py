@@ -190,6 +190,25 @@ class Composer:
             .filter("trim", duration=duration)
             .filter("setpts", "PTS-STARTPTS")
         )
+
+        # Apply Ken Burns Slow Zoom (100% -> 110% zoom in)
+        zoom_expr = f"1.0+0.10*(t/{duration:.3f})"
+        video = (
+            video
+            .filter(
+                "scale",
+                eval="frame",
+                w=f"ceil(iw*({zoom_expr})/2)*2",
+                h=f"ceil(ih*({zoom_expr})/2)*2",
+            )
+            .filter(
+                "crop",
+                self.target_width,
+                self.target_height,
+                x=f"(in_w-{self.target_width})/2",
+                y=f"(in_h-{self.target_height})/2",
+            )
+        )
         video = self._video_filters(video)
 
         output_opts = self._get_vcodec_options()
@@ -430,6 +449,32 @@ class Composer:
 
         return [p for p in rendered_paths if p is not None]
 
+    @staticmethod
+    def _generate_default_sfx(sfx_path: Path) -> None:
+        """Generate a subtle, high-quality transition whoosh SFX using FFmpeg audio synthesizer."""
+        try:
+            sfx_path.parent.mkdir(parents=True, exist_ok=True)
+            import subprocess
+            cmd = [
+                "ffmpeg",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                "aevalsrc=sin(2*PI*(120+1200*t)*t)*exp(-9*t)*0.25:d=0.3",
+                "-ar",
+                "44100",
+                "-ac",
+                "2",
+                str(sfx_path),
+            ]
+            subprocess.run(cmd, check=True)
+            print(f"🔊 Generated default transition SFX: {sfx_path.name}")
+        except Exception as error:
+            print(f"⚠️ Could not generate default SFX: {error}")
+
     def concatenate_with_transitions(
         self,
         video_paths: Sequence[str],
@@ -452,6 +497,12 @@ class Composer:
         existing_paths = [Path(path) for path in video_paths if Path(path).is_file()]
         if not existing_paths:
             return None
+
+        # Prepare SFX transition sound
+        sfx_dir = Path.cwd() / "assets" / "sfx"
+        whoosh_path = sfx_dir / "whoosh.wav"
+        if not whoosh_path.exists():
+            self._generate_default_sfx(whoosh_path)
 
         first_input = ffmpeg.input(str(existing_paths[0]))
         video_stream = self._prepared_transition_video_input(first_input)
@@ -499,6 +550,21 @@ class Composer:
                 "acrossfade",
                 d=transition_duration,
             )
+
+            # Mix transition Whoosh SFX if available
+            if whoosh_path.is_file():
+                try:
+                    delay_ms = int(offset * 1000)
+                    sfx_stream = (
+                        ffmpeg.input(str(whoosh_path))
+                        .audio
+                        .filter("adelay", f"{delay_ms}|{delay_ms}")
+                        .filter("volume", 0.30)
+                        .filter("aresample", self.AUDIO_SAMPLE_RATE)
+                    )
+                    audio_stream = ffmpeg.filter([audio_stream, sfx_stream], "amix", inputs=2, duration="first")
+                except Exception as sfx_err:
+                    print(f"⚠️ SFX transition mix skipped: {sfx_err}")
             current_duration = current_duration + next_duration - transition_duration
 
         # ── BGM selection & Sidechain Ducking ─────────────────────────────────
