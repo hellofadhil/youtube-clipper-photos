@@ -141,9 +141,6 @@ def generate_script_step(category_choice, custom_location, audio_mode_choice):
             f"Atau klik **'🔄 Generate Topik Baru'** jika ingin mencoba topik lain.*"
         )
 
-        full_json_payload = script if isinstance(script, dict) else {"metadata": metadata, "scenes": scenes}
-        full_json_str = json.dumps(full_json_payload, indent=2, ensure_ascii=False)
-
         return (
             status_msg,
             topic,
@@ -152,27 +149,16 @@ def generate_script_step(category_choice, custom_location, audio_mode_choice):
             hashtags,
             scenes_json_str,
             table_data,
-            full_json_str,
         )
     except Exception as err:
-        return f"❌ Error: {str(err)}", "", "", "", "", "[]", None, "{}"
+        return f"❌ Error: {str(err)}", "", "", "", "", "[]", None
 
 
-def fetch_assets_step(scenes_json_str, table_data, scenes_json_code=""):
+def fetch_assets_step(scenes_json_str, table_data):
     """Step 2: Search & download stock video footage for each scene."""
     try:
         scenes = []
-        if scenes_json_code and isinstance(scenes_json_code, str) and scenes_json_code.strip():
-            try:
-                parsed = json.loads(scenes_json_code.strip())
-                if isinstance(parsed, dict) and "scenes" in parsed:
-                    scenes = parsed["scenes"]
-                elif isinstance(parsed, list):
-                    scenes = parsed
-            except Exception:
-                scenes = []
-
-        if not scenes and table_data is not None:
+        if table_data is not None:
             if hasattr(table_data, "empty") and hasattr(table_data, "iterrows"):
                 if not table_data.empty:
                     for _, row in table_data.iterrows():
@@ -246,7 +232,6 @@ async def render_video_step(
     audio_mode_choice,
     scenes_json_str,
     table_data,
-    scenes_json_code="",
     progress=gr.Progress(track_tqdm=True),
 ):
     """Step 3: Render voice narration, ASS subtitles, and final FFmpeg video stitch."""
@@ -257,25 +242,6 @@ async def render_video_step(
         is_bgm_only = "BGM Only" in audio_mode_choice
 
         scenes = []
-        if scenes_json_code and isinstance(scenes_json_code, str) and scenes_json_code.strip():
-            try:
-                parsed = json.loads(scenes_json_code.strip())
-                if isinstance(parsed, dict):
-                    if "scenes" in parsed:
-                        scenes = parsed["scenes"]
-                    meta = parsed.get("metadata", {})
-                    if meta.get("title") and (not title or title == topic):
-                        title = meta["title"]
-                    if meta.get("description") and not description:
-                        description = meta["description"]
-                    if meta.get("hashtags") and not hashtags:
-                        hashtags = meta["hashtags"]
-                    if meta.get("topic") and (not topic or topic == "Untitled YouTube Short"):
-                        topic = meta["topic"]
-                elif isinstance(parsed, list):
-                    scenes = parsed
-            except Exception:
-                scenes = []
         if table_data is not None:
             # Handle pandas DataFrame from Gradio Dataframe component
             if hasattr(table_data, "empty") and hasattr(table_data, "iterrows"):
@@ -505,15 +471,6 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                 wrap=True,
             )
 
-            with gr.Accordion("📝 Raw JSON Script Editor (Optionally Edit or Paste Custom JSON Here)", open=False):
-                gr.Markdown("*Tip: You can edit or paste a full JSON script structure (with metadata and scenes) below. The render engine will automatically prioritize this JSON if filled!*")
-                scenes_json_code = gr.Code(
-                    label="Raw JSON Script (Editable)",
-                    language="json",
-                    interactive=True,
-                    lines=12,
-                )
-
             gr.Markdown("---")
             with gr.Row():
                 with gr.Column(scale=1):
@@ -562,7 +519,6 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             tags_input,
             scenes_json_state,
             scenes_dataframe,
-            scenes_json_code,
         ],
     )
 
@@ -577,7 +533,6 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             tags_input,
             scenes_json_state,
             scenes_dataframe,
-            scenes_json_code,
         ],
     )
 
@@ -592,7 +547,6 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             audio_mode_radio,
             scenes_json_state,
             scenes_dataframe,
-            scenes_json_code,
         ],
         outputs=[
             status_box_1,
@@ -605,7 +559,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
 
     fetch_assets_btn.click(
         fn=fetch_assets_step,
-        inputs=[scenes_json_state, scenes_dataframe, scenes_json_code],
+        inputs=[scenes_json_state, scenes_dataframe],
         outputs=[status_box_2, scenes_json_state, preview_clip],
     )
 
@@ -620,7 +574,6 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             audio_mode_radio,
             scenes_json_state,
             scenes_dataframe,
-            scenes_json_code,
         ],
         outputs=[
             status_box_3,
