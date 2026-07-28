@@ -1578,6 +1578,11 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
         if not isinstance(script, dict) or "scenes" not in script:
             return script
 
+        scenes = script.get("scenes", [])
+        if len(scenes) > 15:
+            print("  🛡️ Pass 1 Audit: Preserving all 100+ scenes for longform documentary script.")
+            return script
+
         print(f"🛡️ Stage 2 Audit: Running AI Fact Filter & Verification Pass...")
         try:
             audit_prompt = f"""
