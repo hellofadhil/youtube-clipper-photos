@@ -1374,6 +1374,11 @@ class ContentBrain:
         else:
             script = self._generate_edutainment_script(topic, category)
 
+        # ── Stage 2 Audit & Fact Filter Pass (Runs for ALL categories) ──────
+        if script:
+            fact_sheet = getattr(self, "_last_fact_sheet", "")
+            script = self.audit_and_refine_script(script, topic=topic, fact_sheet=fact_sheet)
+
         # ── Post-process: replace abstract / duplicate / conflicting visual queries ──────
         if script:
             print("🔍 Running visual query sanitizer...")
@@ -1410,10 +1415,53 @@ class ContentBrain:
             print(f"  ⚠️ Fact research fallback (no web grounding): {error}")
             return ""
 
+    def audit_and_refine_script(self, script: dict, topic: str, fact_sheet: str = "") -> dict:
+        """Stage 2 Audit: Post-generation AI Fact & Quality Verifier pass for ALL categories."""
+        if not isinstance(script, dict) or "scenes" not in script:
+            return script
+
+        print(f"🛡️ Stage 2 Audit: Running AI Fact Filter & Verification Pass...")
+        try:
+            audit_prompt = f"""
+You are a senior factual auditor and chief editor for YouTube Edutainment Shorts.
+Review the following generated script for the topic: "{topic}".
+
+VERIFIED FACT REFERENCE SHEET:
+{fact_sheet or 'N/A'}
+
+GENERATED SCRIPT DRAFT:
+{json.dumps(script, indent=2, ensure_ascii=False)}
+
+AUDIT CRITERIA (STRICT COMPLIANCE REQUIRED):
+1. FACTUAL & CHEMICAL ACCURACY:
+   - Pure gold does NOT rust or corrode in ocean water. (If mentioned, correct to iron, silver, or copper alloys or surrounding ship structure).
+   - Metrics & Valuations MUST be scientifically accurate (e.g. 6 tons of gold = over $400 million USD today, specify exact scale).
+   - Eliminate any scientifically false claims or physical impossibilities.
+2. NARRATIVE FLOW & RETENTION:
+   - Ensure text in each scene is 10 to 14 words long, punchy, and fast-paced.
+   - Keep the shock-value hook in Scene 1 and provocative engagement question in Scene 7.
+3. METADATA:
+   - Ensure title, description, and hashtags are accurate and match the revised text.
+
+If the draft script contains ANY factual, chemical, or metric errors, return a CORRECTED version matching the exact JSON schema.
+If the draft script is already 100% accurate, return it unchanged.
+
+Return ONLY valid JSON matching the exact schema. No markdown.
+"""
+            audited_script = self._call_gemini(audit_prompt, schema=EdutainmentOutput)
+            if isinstance(audited_script, dict) and "scenes" in audited_script and len(audited_script["scenes"]) > 0:
+                print("  ✅ Stage 2 Audit: Script verified and facts refined successfully.")
+                return audited_script
+            return script
+        except Exception as error:
+            print(f"  ⚠️ Stage 2 Audit fallback (retaining draft script): {error}")
+            return script
+
     def _generate_edutainment_script(self, topic: str, category: dict):
         visual_guide = category.get("visual_guide", "")
         few_shot = category.get("few_shot_example", "")
         fact_sheet = self.verify_topic_facts(topic)
+        self._last_fact_sheet = fact_sheet
         fact_block = f"\nVERIFIED FACT SHEET (STRICT COMPLIANCE):\n{fact_sheet}\n" if fact_sheet else ""
 
         prompt = f"""
