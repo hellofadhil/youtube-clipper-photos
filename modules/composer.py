@@ -41,19 +41,20 @@ class Composer:
         self.target_fps = int(target_fps)
         self.transition_duration = max(0.0, float(transition_duration))
         self.keep_normalized_clips = keep_normalized_clips
-        self.vcodec = os.getenv("FFMPEG_VCODEC", "libx264")
-        self.max_workers = int(os.getenv("MAX_CONCURRENT_WORKERS", "4"))
-
-        # Test if configured vcodec is supported by FFmpeg binary or hardware
-        if self.vcodec != "libx264":
-            if not self._is_vcodec_available(self.vcodec):
-                print(
-                    f"⚠️ GPU/Encoder '{self.vcodec}' is not supported by FFmpeg binary or hardware. "
-                    f"Falling back to 'libx264' (CPU)."
-                )
+        env_vcodec = os.getenv("FFMPEG_VCODEC")
+        if env_vcodec:
+            self.vcodec = env_vcodec
+            if self.vcodec != "libx264" and not self._is_vcodec_available(self.vcodec):
+                print(f"⚠️ GPU/Encoder '{self.vcodec}' is not supported by FFmpeg binary or hardware. Falling back to 'libx264' (CPU).")
                 self.vcodec = "libx264"
-            else:
+            elif self.vcodec != "libx264":
                 print(f"⚡ Hardware Acceleration Active: Using '{self.vcodec}' encoder.")
+        else:
+            if self._is_vcodec_available("h264_nvenc"):
+                self.vcodec = "h264_nvenc"
+                print("⚡ NVIDIA T4 GPU Auto-Detected: Hardware Acceleration Active ('h264_nvenc').")
+            else:
+                self.vcodec = "libx264"
 
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         self.final_dir.mkdir(parents=True, exist_ok=True)
@@ -67,7 +68,7 @@ class Composer:
         try:
             extra_opts = {}
             if "nvenc" in vcodec.lower():
-                extra_opts["preset"] = "fast"
+                extra_opts["preset"] = "p4"
             elif "qsv" in vcodec.lower():
                 extra_opts["preset"] = "veryfast"
             command = (
@@ -78,7 +79,7 @@ class Composer:
             )
             command.run(capture_stdout=True, capture_stderr=True)
             return True
-        except ffmpeg.Error:
+        except Exception:
             return False
 
     def _get_vcodec_options(self) -> dict:
