@@ -41,6 +41,7 @@ class Composer:
         self.target_fps = int(target_fps)
         self.transition_duration = max(0.0, float(transition_duration))
         self.keep_normalized_clips = keep_normalized_clips
+        self.max_workers = int(os.getenv("MAX_CONCURRENT_WORKERS", "7"))
         env_vcodec = os.getenv("FFMPEG_VCODEC")
         if env_vcodec:
             self.vcodec = env_vcodec
