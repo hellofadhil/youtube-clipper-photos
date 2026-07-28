@@ -66,22 +66,27 @@ class Composer:
     @staticmethod
     def _is_vcodec_available(vcodec: str) -> bool:
         """Probe FFmpeg to check if a specific encoder (e.g. h264_nvenc) is usable."""
-        try:
-            extra_opts = {}
-            if "nvenc" in vcodec.lower():
-                extra_opts["preset"] = "p4"
-            elif "qsv" in vcodec.lower():
-                extra_opts["preset"] = "veryfast"
-            command = (
-                ffmpeg
-                .input("color=c=black:s=100x100:d=0.1", format="lavfi")
-                .output("pipe:", format="null", vcodec=vcodec, **extra_opts)
-                .global_args("-hide_banner", "-loglevel", "error")
-            )
-            command.run(capture_stdout=True, capture_stderr=True)
+        if not vcodec or vcodec == "libx264":
             return True
-        except Exception:
-            return False
+
+        preset_candidates = ["fast", "p4", "p1", None] if "nvenc" in vcodec.lower() else [None]
+        for preset_opt in preset_candidates:
+            try:
+                extra_opts = {}
+                if preset_opt:
+                    extra_opts["preset"] = preset_opt
+
+                command = (
+                    ffmpeg
+                    .input("color=c=black:s=100x100:d=0.1", format="lavfi")
+                    .output("pipe:", format="null", vcodec=vcodec, pix_fmt="yuv420p", **extra_opts)
+                    .global_args("-hide_banner", "-loglevel", "error")
+                )
+                command.run(capture_stdout=True, capture_stderr=True)
+                return True
+            except Exception:
+                continue
+        return False
 
     def _get_vcodec_options(self) -> dict:
         """Return optimal codec options for CPU (libx264) or GPU (nvenc, qsv, videotoolbox)."""
@@ -94,7 +99,7 @@ class Composer:
         }
         vcodec_lower = self.vcodec.lower()
         if "nvenc" in vcodec_lower:
-            options["preset"] = "p4"
+            options["preset"] = "fast"
             options["cq"] = 18
         elif "qsv" in vcodec_lower:
             options["preset"] = "veryfast"
