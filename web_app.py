@@ -185,18 +185,47 @@ async def render_video_step(
         selected_category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
         is_bgm_only = "BGM Only" in audio_mode_choice
 
-        if table_data:
-            scenes = []
-            for row in table_data:
-                scenes.append({
-                    "id": int(row[0]),
-                    "text": str(row[1]),
-                    "visual_1": str(row[2]),
-                    "visual_2": str(row[3]),
-                    "mood": str(row[4]),
-                })
-        else:
-            scenes = json.loads(scenes_json_str)
+        scenes = []
+        if table_data is not None:
+            # Handle pandas DataFrame from Gradio Dataframe component
+            if hasattr(table_data, "empty") and hasattr(table_data, "iterrows"):
+                if not table_data.empty:
+                    for _, row in table_data.iterrows():
+                        r = list(row)
+                        if len(r) >= 5:
+                            scenes.append({
+                                "id": int(r[0]),
+                                "text": str(r[1]),
+                                "visual_1": str(r[2]),
+                                "visual_2": str(r[3]),
+                                "mood": str(r[4]),
+                            })
+            elif isinstance(table_data, dict) and "data" in table_data:
+                for r in table_data.get("data", []):
+                    if len(r) >= 5:
+                        scenes.append({
+                            "id": int(r[0]),
+                            "text": str(r[1]),
+                            "visual_1": str(r[2]),
+                            "visual_2": str(r[3]),
+                            "mood": str(r[4]),
+                        })
+            elif isinstance(table_data, (list, tuple)) and len(table_data) > 0:
+                for r in table_data:
+                    if isinstance(r, (list, tuple)) and len(r) >= 5:
+                        scenes.append({
+                            "id": int(r[0]),
+                            "text": str(r[1]),
+                            "visual_1": str(r[2]),
+                            "visual_2": str(r[3]),
+                            "mood": str(r[4]),
+                        })
+
+        if not scenes and scenes_json_str:
+            try:
+                scenes = json.loads(scenes_json_str)
+            except Exception:
+                scenes = []
 
         if not scenes:
             return "❌ No scenes found for rendering.", None, "", gr.update(visible=False), gr.update(visible=False)
