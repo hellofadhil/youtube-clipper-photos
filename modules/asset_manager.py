@@ -241,7 +241,20 @@ class AssetManager:
             print(f"❌ Scene {scene_id} Completely Failed (No videos found).")
             return scene_id, None
 
-    def get_videos(self, script_data):
+    def clear_video_cache(self):
+        """Clean up previously downloaded video clips so new runs get fresh footage."""
+        if os.path.exists(self.assets_dir):
+            for filename in os.listdir(self.assets_dir):
+                file_path = os.path.join(self.assets_dir, filename)
+                try:
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                except Exception:
+                    pass
+
+    def get_videos(self, script_data, clear_cache=True):
+        if clear_cache:
+            self.clear_video_cache()
         print("🎬 Starting Parallel Double-Feature Video Download...")
         results_map = {}
         max_workers = min(len(script_data), 8)

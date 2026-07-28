@@ -47,12 +47,36 @@ def parse_category_key(choice_str: str) -> str:
     return "1"
 
 
+def clean_cache():
+    """Delete temporary media inside assets folder for fresh generation."""
+    assets_root = os.path.join(os.getcwd(), "assets")
+    folders_to_clean = [
+        os.path.join(assets_root, "audio_clips"),
+        os.path.join(assets_root, "video_clips"),
+        os.path.join(assets_root, "temp"),
+    ]
+
+    for folder in folders_to_clean:
+        if not os.path.isdir(folder):
+            continue
+        for filename in os.listdir(folder):
+            file_path = os.path.join(folder, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception:
+                pass
+
+
 # Global state holders for multi-step UI flow
 brain_instance = ContentBrain()
 
 
 def generate_script_step(category_choice, custom_location, audio_mode_choice):
     """Step 1: Generate trending topic, SEO metadata, and scene plan."""
+    clean_cache()
     category_key = parse_category_key(category_choice)
     selected_category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
     is_bgm_only = "BGM Only" in audio_mode_choice
