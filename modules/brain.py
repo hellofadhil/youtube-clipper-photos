@@ -1435,10 +1435,12 @@ UNIVERSAL SCRIPT RULES (STRICT COMPLIANCE REQUIRED)
 TEXT RULES:
 - "text": Short spoken sentences, STRICTLY 10 to 14 words per scene. Fast-paced, punchy narration perfectly timed for 5.5-second scenes.
 - ANTI-CLICHÉ HOOK: Scene 1 MUST NOT start with dates/locations or "What if I told you", "Did you know", "Have you ever wondered". Start IMMEDIATELY with the most surprising claim.
-- CONCRETE DATA & FACT SAFETY:
+- STRICT SCIENTIFIC & HISTORICAL ACCURACY (CRITICAL):
+  * Check chemical and physical properties before making claims (e.g. pure gold does NOT rust or corrode in ocean water; only iron, copper, or silver alloys oxidize).
+  * Check accurate valuation & metric calculations (e.g. 6 tons of gold is worth over $400 million USD today, specify exact scale).
   * Distinguish total energy from seismic energy or disputed estimates.
   * Use cautious scientific framing for numerical claims: "estimated to rival", "according to researchers", "approximately", "scientists calculated".
-  * Never exaggerate numbers solely for virality or present single disputed figures as absolute facts.
+  * Never state scientifically impossible mechanisms, false chemical properties, or exaggerated figures that contradict basic physical laws.
 - JSON SAFETY: Do NOT use double quotes (") inside text fields. Use single quotes (').
 
 VISUAL QUERY RULES (CRITICAL — TOPIC-LOCKED VISUALS & NEGATIVE INTENT):
