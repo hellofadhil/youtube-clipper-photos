@@ -551,7 +551,7 @@ class Composer:
                 d=transition_duration,
             )
 
-            # Mix transition Whoosh SFX if available
+            # Mix transition Whoosh SFX if available (subtle, non-intrusive)
             if whoosh_path.is_file():
                 try:
                     delay_ms = int(offset * 1000)
@@ -559,10 +559,16 @@ class Composer:
                         ffmpeg.input(str(whoosh_path))
                         .audio
                         .filter("adelay", f"{delay_ms}|{delay_ms}")
-                        .filter("volume", 0.30)
+                        .filter("volume", 0.12)
                         .filter("aresample", self.AUDIO_SAMPLE_RATE)
                     )
-                    audio_stream = ffmpeg.filter([audio_stream, sfx_stream], "amix", inputs=2, duration="first")
+                    audio_stream = ffmpeg.filter(
+                        [audio_stream, sfx_stream],
+                        "amix",
+                        inputs=2,
+                        duration="first",
+                        weights="1 0.1",
+                    )
                 except Exception as sfx_err:
                     print(f"⚠️ SFX transition mix skipped: {sfx_err}")
             current_duration = current_duration + next_duration - transition_duration
@@ -589,7 +595,7 @@ class Composer:
             bgm_input = (
                 ffmpeg.input(str(bgm_path), stream_loop=-1)
                 .audio
-                .filter("volume", 0.18)
+                .filter("volume", 0.08)
                 .filter("atrim", duration=current_duration)
                 .filter("aresample", self.AUDIO_SAMPLE_RATE)
                 .filter(
@@ -604,16 +610,28 @@ class Composer:
                 bgm_ducked = ffmpeg.filter(
                     [bgm_input, audio_stream],
                     "sidechaincompress",
-                    threshold=0.06,
-                    ratio=4,
-                    attack=15,
-                    release=250,
+                    threshold=0.04,
+                    ratio=6,
+                    attack=10,
+                    release=200,
                 )
-                audio_stream = ffmpeg.filter([audio_stream, bgm_ducked], "amix", inputs=2, duration="first")
+                audio_stream = ffmpeg.filter(
+                    [audio_stream, bgm_ducked],
+                    "amix",
+                    inputs=2,
+                    duration="first",
+                    weights="1 0.1",
+                )
             except Exception:
-                audio_stream = ffmpeg.filter([audio_stream, bgm_input], "amix", inputs=2, duration="first")
+                audio_stream = ffmpeg.filter(
+                    [audio_stream, bgm_input],
+                    "amix",
+                    inputs=2,
+                    duration="first",
+                    weights="1 0.1",
+                )
 
-            audio_stream = audio_stream.filter("loudnorm", I=-16, TP=-1.5, LRA=11)
+            audio_stream = audio_stream.filter("volume", 1.5).filter("loudnorm", I=-14, TP=-1.0, LRA=11)
         else:
             print("⚠️ No BGM files found. Add .mp3/.wav files to assets/bgm/ or assets/bgm/{mood}/ to enable background music.")
 
