@@ -1387,41 +1387,84 @@ class ContentBrain:
         self._last_fact_sheet = fact_sheet
         fact_block = f"\nVERIFIED FACT SHEET (STRICT COMPLIANCE):\n{fact_sheet}\n" if fact_sheet else ""
 
-        prompt = f"""
-You are a lead YouTube Documentary Scriptwriter for 16:9 Long-Form Edutainment (like Vox, MagnatesMedia, SunnyV2).
-Generate a full 8.5-minute (510 seconds) documentary script for topic: "{topic}".
-
+        # Step 1: Generate SEO Metadata
+        meta_prompt = f"""
+You are a lead YouTube Documentary Producer. Create SEO metadata for an 8.5-minute 16:9 documentary about: "{topic}".
 {fact_block}
 
-STRUCTURE & CHAPTER REQUIREMENTS (EXACT 5 CHAPTERS, ~100 SCENES TOTAL, 1100-1300 WORDS):
-- ACT 1: THE MEGA HOOK (0:00 - 1:00 | Scenes 1 to 12 | ~150 words): Shocking lead claim & high-stakes setup.
-- ACT 2: ORIGINS & CONTEXT (1:00 - 2:30 | Scenes 13 to 30 | ~220 words): Historical background, origin story, key figures & location.
-- ACT 3: ESCALATION & TURNING POINT (2:30 - 5:30 | Scenes 31 to 66 | ~450 words): Deep dive investigation, main escalation, high stakes, tension.
-- ACT 4: CONSEQUENCES & THE REVEAL (5:30 - 7:30 | Scenes 67 to 90 | ~300 words): The aftermath, legal/scientific reveal, impact.
-- ACT 5: REFLECTION & OUTRO CTA (7:30 - 8:30 | Scenes 91 to 102 | ~150 words): Moral takeaway, thought-provoking question, and subscribe CTA.
-
-RULES FOR EACH SCENE:
-- "id": Sequential integer 1 to ~102.
-- "text": Spoken narration text, 10 to 14 words per scene. Fast-paced, engaging, zero fluff.
-- "visual_1" & "visual_2": 2 distinct landscape stock video search queries (English, specific physical objects/locations matching 16:9 widescreen).
-- "mood": Scene emotional tone ("dramatic", "intense", "tragic", "mind-blowing", "reflective", "shocking").
-
-METADATA REQUIREMENTS:
-- "title": Compelling 16:9 YouTube Documentary Title (e.g., "The Forgotten Tragedy That Changed Labor Laws Forever").
-- "description": Complete 4-sentence SEO description with timestamp chapter breakdown (0:00 Intro, 1:00 Background, 2:30 Escalation, 5:30 Reveal, 7:30 Conclusion).
+Return JSON with:
+- "title": Viral 16:9 Documentary Title.
+- "description": 4-sentence SEO description with timestamp chapters (0:00 Hook, 1:00 Origins, 2:30 Escalation, 5:30 Reveal, 7:30 Conclusion).
 - "hashtags": 5 relevant hashtags (#Documentary #History #TrueStory #DeepDive #LongForm).
-
-Return ONLY valid JSON matching the exact schema. No markdown outside JSON.
 """
-        try:
-            script = self._call_gemini(prompt, schema=EdutainmentOutput)
-            if isinstance(script, dict) and "scenes" in script:
-                script["aspect_ratio"] = "16:9"
-                script = self.run_multi_pass_filter(script, topic=topic, category_key=category_key)
-            return script
-        except Exception as err:
-            print(f"❌ Error generating longform script: {err}")
-            return {}
+        meta_result = self._call_gemini(meta_prompt) or {}
+        metadata = {
+            "title": meta_result.get("title", f"The Untold Story of {topic}"),
+            "description": meta_result.get("description", f"A deep dive documentary into {topic}."),
+            "hashtags": meta_result.get("hashtags", "#Documentary #History #TrueStory #DeepDive #LongForm"),
+        }
+
+        # Step 2: Define 5 Modular Chapters (~100 scenes total)
+        acts_plan = [
+            {"act": 1, "name": "ACT 1: THE MEGA HOOK", "target": 12, "focus": "Shocking lead claim, high stakes setup, immediate hook."},
+            {"act": 2, "name": "ACT 2: ORIGINS & CONTEXT", "target": 18, "focus": "Historical background, origin story, key figures & location."},
+            {"act": 3, "name": "ACT 3: ESCALATION & TURNING POINT", "target": 30, "focus": "Deep dive investigation, main escalation, tension, major twist."},
+            {"act": 4, "name": "ACT 4: CONSEQUENCES & THE REVEAL", "target": 24, "focus": "The aftermath, legal/scientific reveal, impact."},
+            {"act": 5, "name": "ACT 5: REFLECTION & OUTRO CTA", "target": 12, "focus": "Moral takeaway, thought-provoking question, and subscribe CTA."}
+        ]
+
+        all_scenes = []
+        scene_counter = 1
+
+        print("  🧩 Generating Modular Chapters (5 Acts)...")
+        for chapter in acts_plan:
+            target_count = chapter["target"]
+            print(f"    • Generating {chapter['name']} ({target_count} scenes)...")
+
+            act_prompt = f"""
+You are writing {chapter['name']} for an 8.5-minute YouTube documentary about: "{topic}".
+{fact_block}
+
+CHAPTER FOCUS: {chapter['focus']}
+
+Generate EXACTLY {target_count} scenes for this chapter.
+Each scene must have:
+- "id": integer starting at {scene_counter}
+- "text": Spoken narration text, 10 to 14 words per scene. Fast-paced, engaging.
+- "visual_1" & "visual_2": 2 distinct landscape stock video search queries (English, 16:9 physical objects/locations).
+- "mood": Emotional tone ("dramatic", "intense", "tragic", "mind-blowing", "reflective", "shocking").
+
+Return JSON matching the schema with key "scenes" containing {target_count} scene objects.
+"""
+            act_data = self._call_gemini(act_prompt, schema=EdutainmentOutput)
+            if isinstance(act_data, dict) and "scenes" in act_data and len(act_data["scenes"]) > 0:
+                act_scenes = act_data["scenes"]
+                for sc in act_scenes:
+                    sc["id"] = scene_counter
+                    scene_counter += 1
+                all_scenes.extend(act_scenes)
+            else:
+                for i in range(target_count):
+                    all_scenes.append({
+                        "id": scene_counter,
+                        "text": f"Investigating the deep secrets of {topic} during chapter {chapter['act']}.",
+                        "visual_1": f"{topic} documentary scene",
+                        "visual_2": "dark atmospheric cinematic drone shot",
+                        "mood": "dramatic"
+                    })
+                    scene_counter += 1
+
+        print(f"  ✅ Modular Chapter Generation Complete! Total Scenes: {len(all_scenes)}")
+
+        master_script = {
+            "topic": topic,
+            "aspect_ratio": "16:9",
+            "metadata": metadata,
+            "scenes": all_scenes
+        }
+
+        master_script = self.run_multi_pass_filter(master_script, topic=topic, category_key=category_key)
+        return master_script
 
     def run_multi_pass_filter(self, script: dict, topic: str, category_key: str = "1") -> dict:
         """Run 4-Pass Multi-Stage Quality Verification & Polish Pipeline."""
