@@ -80,7 +80,7 @@ def generate_script_step(category_choice, custom_location="", audio_mode_choice=
     category_key = parse_category_key(category_choice)
     selected_category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
     is_bgm_only = "BGM Only" in audio_mode_choice
-    is_longform = "Documentary Mode" in video_format_choice
+    is_longform = any(k in str(video_format_choice) for k in ["Documentary", "16:9", "Long-Form", "8.5 Min"])
 
     custom_loc = custom_location.strip() if custom_location and custom_location.strip() else None
 

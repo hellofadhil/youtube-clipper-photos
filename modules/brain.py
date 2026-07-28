@@ -1436,7 +1436,7 @@ Each scene must have:
 
 Return JSON matching the schema with key "scenes" containing {target_count} scene objects.
 """
-            act_data = self._call_gemini(act_prompt, schema=EdutainmentOutput)
+            act_data = self._call_gemini(act_prompt)
             if isinstance(act_data, dict) and "scenes" in act_data and len(act_data["scenes"]) > 0:
                 act_scenes = act_data["scenes"]
                 for sc in act_scenes:
