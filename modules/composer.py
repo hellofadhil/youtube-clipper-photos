@@ -69,7 +69,9 @@ class Composer:
         if not vcodec or vcodec == "libx264":
             return True
 
+        # NVIDIA NVENC hardware requires minimum resolution (e.g. 1080x1920 target size instead of 100x100)
         preset_candidates = ["fast", "p4", "p1", None] if "nvenc" in vcodec.lower() else [None]
+        last_error = ""
         for preset_opt in preset_candidates:
             try:
                 extra_opts = {}
@@ -78,14 +80,21 @@ class Composer:
 
                 command = (
                     ffmpeg
-                    .input("color=c=black:s=100x100:d=0.1", format="lavfi")
+                    .input("color=c=black:s=1080x1920:d=0.1", format="lavfi")
                     .output("pipe:", format="null", vcodec=vcodec, pix_fmt="yuv420p", **extra_opts)
                     .global_args("-hide_banner", "-loglevel", "error")
                 )
                 command.run(capture_stdout=True, capture_stderr=True)
                 return True
-            except Exception:
+            except ffmpeg.Error as err:
+                last_error = err.stderr.decode("utf-8", errors="ignore") if err.stderr else str(err)
                 continue
+            except Exception as err:
+                last_error = str(err)
+                continue
+
+        if last_error:
+            print(f"🔍 Probe details for '{vcodec}': {last_error.strip()}")
         return False
 
     def _get_vcodec_options(self) -> dict:
