@@ -74,12 +74,13 @@ def clean_cache():
 brain_instance = ContentBrain()
 
 
-def generate_script_step(category_choice, custom_location, audio_mode_choice):
-    """Step 1: Generate trending topic, SEO metadata, and scene plan."""
+def generate_script_step(category_choice, custom_location="", audio_mode_choice="", video_format_choice="📱 Shorts Mode (9:16 Vertical - ~40s)"):
+    """Step 1: Generate AI topic, script, and SEO metadata."""
     clean_cache()
     category_key = parse_category_key(category_choice)
     selected_category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
     is_bgm_only = "BGM Only" in audio_mode_choice
+    is_longform = "Documentary Mode" in video_format_choice
 
     custom_loc = custom_location.strip() if custom_location and custom_location.strip() else None
 
@@ -92,17 +93,16 @@ def generate_script_step(category_choice, custom_location, audio_mode_choice):
         force_mode = "scenery" if is_bgm_only else "edutainment"
         bgm_mood = brain_instance.get_bgm_mood(topic)
 
-        if is_bgm_only:
-            landmarks = brain_instance.get_topic_anchors(topic)
+        if is_longform:
+            script = brain_instance.generate_longform_script(topic, category_key=category_key)
         else:
-            landmarks = []
-
-        script = brain_instance.generate_script(
-            topic,
-            category_key=category_key,
-            landmarks=landmarks if is_bgm_only else None,
-            force_mode=force_mode,
-        )
+            landmarks = brain_instance.get_topic_anchors(topic) if is_bgm_only else []
+            script = brain_instance.generate_script(
+                topic,
+                category_key=category_key,
+                landmarks=landmarks if is_bgm_only else None,
+                force_mode=force_mode,
+            )
 
         if not script:
             return "❌ Failed to generate script from AI Brain.", "", "", "", "", "[]", None
@@ -131,9 +131,11 @@ def generate_script_step(category_choice, custom_location, audio_mode_choice):
 
         scenes_json_str = json.dumps(scenes, indent=2)
 
+        format_label = "🎬 Long-Form 16:9 Documentary (8.5 Min)" if is_longform else "📱 Shorts 9:16 (~40s)"
         status_msg = (
             f"✅ **Topic Generated Successfully!**\n\n"
             f"📌 **Topic**: {topic}\n"
+            f"📐 **Format**: {format_label}\n"
             f"🎭 **Category**: {selected_category['name']}\n"
             f"🎶 **BGM Mood**: {bgm_mood.upper() if bgm_mood else 'N/A'}\n"
             f"🎙️ **Voice Profile**: {selected_category.get('voice', 'en-US-AvaNeural')}\n\n"
@@ -154,7 +156,7 @@ def generate_script_step(category_choice, custom_location, audio_mode_choice):
         return f"❌ Error: {str(err)}", "", "", "", "", "[]", None
 
 
-def fetch_assets_step(scenes_json_str, table_data):
+def fetch_assets_step(scenes_json_str, table_data, video_format_choice="📱 Shorts Mode (9:16 Vertical - ~40s)"):
     """Step 2: Search & download stock video footage for each scene."""
     try:
         scenes = []
@@ -201,10 +203,11 @@ def fetch_assets_step(scenes_json_str, table_data):
         if not scenes:
             return "❌ No scenes available to fetch assets for.", None, ""
 
+        orientation = "landscape" if "Documentary Mode" in video_format_choice else "portrait"
         asset_mgr = AssetManager()
-        video_pairs = asset_mgr.get_videos(scenes)
+        video_pairs = asset_mgr.get_videos(scenes, orientation=orientation)
 
-        status_lines = ["✅ **Footage Download Complete!**\n"]
+        status_lines = [f"✅ **Footage Download Complete ({orientation})!**\n"]
         clip_paths = []
 
         for idx, pair in enumerate(video_pairs):
@@ -232,6 +235,7 @@ async def render_video_step(
     audio_mode_choice,
     scenes_json_str,
     table_data,
+    video_format_choice="📱 Shorts Mode (9:16 Vertical - ~40s)",
     progress=gr.Progress(track_tqdm=True),
 ):
     """Step 3: Render voice narration, ASS subtitles, and final FFmpeg video stitch."""
@@ -240,6 +244,9 @@ async def render_video_step(
         category_key = parse_category_key(category_choice)
         selected_category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
         is_bgm_only = "BGM Only" in audio_mode_choice
+        is_longform = "Documentary Mode" in video_format_choice
+        aspect_ratio = "16:9" if is_longform else "9:16"
+        orientation = "landscape" if is_longform else "portrait"
 
         scenes = []
         if table_data is not None:
@@ -296,23 +303,24 @@ async def render_video_step(
         scenes = await audio_engine.process_script(scenes, bgm_only=is_bgm_only, title=title)
 
         # 2. Download Assets if missing
-        progress(0.5, desc="Fetching video clips...")
+        progress(0.5, desc=f"Fetching video clips ({orientation})...")
         asset_mgr = AssetManager()
-        video_pairs = asset_mgr.get_videos(scenes)
+        video_pairs = asset_mgr.get_videos(scenes, orientation=orientation)
 
         # 3. Parallel FFmpeg Render
-        progress(0.7, desc="Rendering scenes in parallel with FFmpeg...")
-        composer = Composer()
+        progress(0.7, desc=f"Rendering scenes in parallel with FFmpeg ({aspect_ratio})...")
+        composer = Composer(aspect_ratio=aspect_ratio)
         final_scene_paths = composer.render_all_scenes(scenes, video_pairs)
 
         if not final_scene_paths:
             return "❌ Failed to render individual scene MP4s.", None, "", gr.update(visible=False), gr.update(visible=False)
 
         # 4. Stitch with Transitions
-        progress(0.9, desc="Stitching final 9:16 Shorts video with transitions...")
+        progress(0.9, desc=f"Stitching final {aspect_ratio} video with transitions...")
+        output_name = "final_documentary.mp4" if is_longform else "final_short.mp4"
         final_video_path = composer.concatenate_with_transitions(
             final_scene_paths,
-            output_filename="final_short.mp4",
+            output_filename=output_name,
             bgm_mood=bgm_mood,
         )
 
@@ -437,6 +445,15 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                         placeholder="e.g. 'How AI works', 'Become an Astronaut', 'Paris'",
                         interactive=True,
                     )
+                    video_format_radio = gr.Radio(
+                        label="📐 Video Format & Duration Mode",
+                        choices=[
+                            "📱 Shorts Mode (9:16 Vertical - ~40s)",
+                            "🎬 Documentary Mode (16:9 Widescreen - 8.5 Min)",
+                        ],
+                        value="📱 Shorts Mode (9:16 Vertical - ~40s)",
+                        interactive=True,
+                    )
                     audio_mode_radio = gr.Radio(
                         label="🔊 Audio Mode",
                         choices=[
@@ -478,7 +495,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                     tab1_metadata_output = gr.TextArea(label="📄 Saved SEO Metadata", interactive=False, visible=False)
                 with gr.Column(scale=1):
                     tab1_video_player = gr.Video(
-                        label="🎥 Rendered Shorts Video (9:16)",
+                        label="🎥 Rendered Shorts Video (9:16 / 16:9)",
                         interactive=False,
                         autoplay=True,
                         visible=False,
@@ -502,7 +519,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                     metadata_output = gr.TextArea(label="📄 Final SEO Metadata", interactive=False)
                 with gr.Column(scale=1):
                     final_video_player = gr.Video(
-                        label="🎥 Final Rendered Shorts (9:16)",
+                        label="🎥 Final Rendered Shorts (9:16 / 16:9)",
                         interactive=False,
                         autoplay=True,
                     )
@@ -510,7 +527,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
     # ── Event Callbacks ──────────────────────────────────────────────────────
     gen_script_btn.click(
         fn=generate_script_step,
-        inputs=[category_dropdown, custom_topic_input, audio_mode_radio],
+        inputs=[category_dropdown, custom_topic_input, audio_mode_radio, video_format_radio],
         outputs=[
             status_box_1,
             topic_output,
@@ -524,7 +541,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
 
     regen_script_btn.click(
         fn=generate_script_step,
-        inputs=[category_dropdown, custom_topic_input, audio_mode_radio],
+        inputs=[category_dropdown, custom_topic_input, audio_mode_radio, video_format_radio],
         outputs=[
             status_box_1,
             topic_output,
@@ -547,6 +564,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             audio_mode_radio,
             scenes_json_state,
             scenes_dataframe,
+            video_format_radio,
         ],
         outputs=[
             status_box_1,
@@ -559,7 +577,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
 
     fetch_assets_btn.click(
         fn=fetch_assets_step,
-        inputs=[scenes_json_state, scenes_dataframe],
+        inputs=[scenes_json_state, scenes_dataframe, video_format_radio],
         outputs=[status_box_2, scenes_json_state, preview_clip],
     )
 
@@ -574,6 +592,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             audio_mode_radio,
             scenes_json_state,
             scenes_dataframe,
+            video_format_radio,
         ],
         outputs=[
             status_box_3,

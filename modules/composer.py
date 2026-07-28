@@ -31,7 +31,15 @@ class Composer:
         target_fps: int = TARGET_FPS,
         transition_duration: float = 0.5,
         keep_normalized_clips: bool = False,
+        aspect_ratio: str = "9:16",
     ) -> None:
+        if aspect_ratio == "16:9":
+            target_width = 1920
+            target_height = 1080
+        elif aspect_ratio == "9:16":
+            target_width = 1080
+            target_height = 1920
+
         self.temp_dir = Path.cwd() / "assets" / "temp"
         self.final_dir = Path.cwd() / "assets" / "final"
         self.normalized_dir = self.temp_dir / "normalized"
@@ -39,6 +47,7 @@ class Composer:
         self.target_width = int(target_width)
         self.target_height = int(target_height)
         self.target_fps = int(target_fps)
+        self.aspect_ratio = aspect_ratio
         self.transition_duration = max(0.0, float(transition_duration))
         self.keep_normalized_clips = keep_normalized_clips
         self.max_workers = int(os.getenv("MAX_CONCURRENT_WORKERS", "7"))

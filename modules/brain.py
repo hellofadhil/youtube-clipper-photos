@@ -1386,6 +1386,50 @@ class ContentBrain:
 
         return script
 
+    def generate_longform_script(self, topic: str, category_key: str = "1") -> dict:
+        """Generate an 8.5-minute modular documentary script (16:9 Widescreen) with 5 structured chapters & ~100 scenes."""
+        print(f"🎬 Writing 8.5-Minute Long-Form Documentary Script for: '{topic}'...")
+        fact_sheet = self.verify_topic_facts(topic)
+        self._last_fact_sheet = fact_sheet
+        fact_block = f"\nVERIFIED FACT SHEET (STRICT COMPLIANCE):\n{fact_sheet}\n" if fact_sheet else ""
+
+        prompt = f"""
+You are an lead YouTube Documentary Scriptwriter for 16:9 Long-Form Edutainment (like Vox, MagnatesMedia, SunnyV2).
+Generate a full 8.5-minute (510 seconds) documentary script for topic: "{topic}".
+
+{fact_block}
+
+STRUCTURE & CHAPTER REQUIREMENTS (EXACT 5 CHAPTERS, ~100 SCENES TOTAL, 1100-1300 WORDS):
+- ACT 1: THE MEGA HOOK (0:00 - 1:00 | Scenes 1 to 12 | ~150 words): Shocking lead claim & high-stakes setup.
+- ACT 2: ORIGINS & CONTEXT (1:00 - 2:30 | Scenes 13 to 30 | ~220 words): Historical background, origin story, key figures & location.
+- ACT 3: ESCALATION & TURNING POINT (2:30 - 5:30 | Scenes 31 to 66 | ~450 words): Deep dive investigation, main escalation, high stakes, tension.
+- ACT 4: CONSEQUENCES & THE REVEAL (5:30 - 7:30 | Scenes 67 to 90 | ~300 words): The aftermath, legal/scientific reveal, impact.
+- ACT 5: REFLECTION & OUTRO CTA (7:30 - 8:30 | Scenes 91 to 102 | ~150 words): Moral takeaway, thought-provoking question, and subscribe CTA.
+
+RULES FOR EACH SCENE:
+- "id": Sequential integer 1 to ~102.
+- "text": Spoken narration text, 10 to 14 words per scene. Fast-paced, engaging, zero fluff.
+- "visual_1" & "visual_2": 2 distinct landscape stock video search queries (English, specific physical objects/locations matching 16:9 widescreen).
+- "mood": Scene emotional tone ("dramatic", "intense", "tragic", "mind-blowing", "reflective", "shocking").
+
+METADATA REQUIREMENTS:
+- "title": Compelling 16:9 YouTube Documentary Title (e.g., "The Forgotten Tragedy That Changed Labor Laws Forever").
+- "description": Complete 4-sentence SEO description with timestamp chapter breakdown (0:00 Intro, 1:00 Background, 2:30 Escalation, 5:30 Reveal, 7:30 Conclusion).
+- "hashtags": 5 relevant hashtags (#Documentary #History #TrueStory #DeepDive #LongForm).
+
+Return ONLY valid JSON matching the exact schema. No markdown outside JSON.
+"""
+        try:
+            script = self._call_gemini(prompt, schema=EdutainmentOutput)
+            if isinstance(script, dict) and "scenes" in script:
+                script["aspect_ratio"] = "16:9"
+                script = self.audit_and_refine_script(script, topic=topic, fact_sheet=fact_sheet)
+                script = _sanitize_visual_queries(script, category_key, topic=topic)
+            return script
+        except Exception as err:
+            print(f"❌ Error generating longform script: {err}")
+            return {}
+
     def verify_topic_facts(self, topic: str) -> str:
         """Stage 1: Fact research & verification with Google Search grounding."""
         print(f"🔬 Stage 1: Researching & verifying facts for '{topic}' via Google Search grounding...")

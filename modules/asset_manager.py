@@ -23,17 +23,18 @@ class AssetManager:
         self.assets_dir = os.path.join(os.getcwd(), "assets", "video_clips")
         os.makedirs(self.assets_dir, exist_ok=True)
 
-    def search_pexels(self, query, duration_min=3, exclude_url=None):
-        """Search Pexels API for vertical/portrait videos."""
+    def search_pexels(self, query, duration_min=3, exclude_url=None, orientation="portrait"):
+        """Search Pexels API for portrait (9:16) or landscape (16:9) videos."""
         if not self.pexels_api_key or not query or not query.strip():
             return None
 
-        print(f"🔎 Searching Pexels for: '{query}'...")
+        pexels_orient = "landscape" if orientation in ["landscape", "horizontal"] else "portrait"
+        print(f"🔎 Searching Pexels ({pexels_orient}) for: '{query}'...")
         headers = {"Authorization": self.pexels_api_key}
         params = {
             "query": query,
             "per_page": 15,
-            "orientation": "portrait",
+            "orientation": pexels_orient,
             "size": "medium",
             "locale": "en-US",
         }
@@ -53,12 +54,18 @@ class AssetManager:
             if not videos:
                 return None
 
-            # Filter portrait aspect ratio (height >= width) and valid duration
-            portrait_videos = [
-                v for v in videos
-                if v.get("duration", 0) >= duration_min and (v.get("height", 0) or 0) >= (v.get("width", 0) or 0)
-            ]
-            candidates = portrait_videos if portrait_videos else [
+            # Filter aspect ratio and valid duration
+            if pexels_orient == "landscape":
+                oriented_videos = [
+                    v for v in videos
+                    if v.get("duration", 0) >= duration_min and (v.get("width", 0) or 0) >= (v.get("height", 0) or 0)
+                ]
+            else:
+                oriented_videos = [
+                    v for v in videos
+                    if v.get("duration", 0) >= duration_min and (v.get("height", 0) or 0) >= (v.get("width", 0) or 0)
+                ]
+            candidates = oriented_videos if oriented_videos else [
                 v for v in videos if v.get("duration", 0) >= duration_min
             ] or videos
 
@@ -85,17 +92,18 @@ class AssetManager:
             print(f"❌ Error searching Pexels for '{query}': {error}")
             return None
 
-    def search_pixabay(self, query, duration_min=3, exclude_url=None):
-        """Search Pixabay API for vertical/portrait videos as fallback."""
+    def search_pixabay(self, query, duration_min=3, exclude_url=None, orientation="portrait"):
+        """Search Pixabay API for vertical/portrait or horizontal/landscape videos as fallback."""
         if not self.pixabay_api_key or not query or not query.strip():
             return None
 
-        print(f"🔎 Fallback searching Pixabay for: '{query}'...")
+        pixabay_orientation = "horizontal" if orientation in ["landscape", "horizontal"] else "vertical"
+        print(f"🔎 Fallback searching Pixabay ({pixabay_orientation}) for: '{query}'...")
         params = {
             "key": self.pixabay_api_key,
             "q": query,
             "video_type": "all",
-            "orientation": "vertical",
+            "orientation": pixabay_orientation,
             "per_page": 15,
         }
         try:
@@ -131,19 +139,21 @@ class AssetManager:
             print(f"❌ Error searching Pixabay for '{query}': {error}")
             return None
 
-    def search_video(self, query, duration_min=3, attempt=1, exclude_url=None):
+    def search_video(self, query, duration_min=3, attempt=1, exclude_url=None, orientation="portrait"):
         """Search primary provider (Pexels) and fall back to secondary (Pixabay) with smart queries."""
         if not query or not query.strip():
             return None
 
         # Step 1: Try Pexels
-        url = self.search_pexels(query, duration_min=duration_min, exclude_url=exclude_url)
+        url = self.search_pexels(query, duration_min=duration_min, exclude_url=exclude_url, orientation=orientation)
         if url and url != exclude_url:
             return url
 
         # Step 2: Try Pixabay fallback
         if self.pixabay_api_key:
-            url = self.search_pixabay(query, duration_min=duration_min, exclude_url=exclude_url)
+            url = self.search_pixabay(query, duration_min=duration_min, exclude_url=exclude_url, orientation=orientation)
+            if url and url != exclude_url:
+                return url
             if url and url != exclude_url:
                 return url
 
@@ -199,30 +209,30 @@ class AssetManager:
                     print(f"❌ Error downloading {filename}: {error}")
         return None
 
-    def _process_scene_clips(self, scene):
+    def _process_scene_clips(self, scene, orientation="portrait"):
         scene_id = scene["id"]
         query_a = scene.get("visual_1", scene.get("keywords", "abstract"))
         query_b = scene.get("visual_2", query_a)
 
-        url_a = self.search_video(query_a)
+        url_a = self.search_video(query_a, orientation=orientation)
         path_a = self.download_video(url_a, f"scene_{scene_id}_a.mp4") if url_a else None
 
         # Replacement search for Clip A if initial search/download failed
         if not path_a:
             print(f"⚠️ Scene {scene_id} Clip A failed for '{query_a}'. Running secondary replacement search...")
             fallback_queries = ["cinematic dark atmospheric landscape", "planet earth space aerial", "ocean underwater deep blue"]
-            alt_url_a = self.search_video(random.choice(fallback_queries), attempt=3)
+            alt_url_a = self.search_video(random.choice(fallback_queries), attempt=3, orientation=orientation)
             if alt_url_a:
                 path_a = self.download_video(alt_url_a, f"scene_{scene_id}_a_alt.mp4")
 
-        url_b = self.search_video(query_b, exclude_url=url_a)
+        url_b = self.search_video(query_b, exclude_url=url_a, orientation=orientation)
         path_b = self.download_video(url_b, f"scene_{scene_id}_b.mp4") if url_b else None
 
         # Replacement search for Clip B if initial search/download failed (PREVENTS DUPLICATED CLIP A!)
         if not path_b:
             print(f"⚠️ Scene {scene_id} Clip B failed for '{query_b}'. Running secondary replacement search to prevent clip duplication...")
             fallback_queries = ["galaxy deep space stars rotation", "cinematic technology render", "aerial drone mountain landscape"]
-            alt_url_b = self.search_video(random.choice(fallback_queries), attempt=3, exclude_url=url_a)
+            alt_url_b = self.search_video(random.choice(fallback_queries), attempt=3, exclude_url=url_a, orientation=orientation)
             if alt_url_b:
                 path_b = self.download_video(alt_url_b, f"scene_{scene_id}_b_alt.mp4")
 
@@ -252,16 +262,16 @@ class AssetManager:
                 except Exception:
                     pass
 
-    def get_videos(self, script_data, clear_cache=True):
+    def get_videos(self, script_data, clear_cache=True, orientation="portrait"):
         if clear_cache:
             self.clear_video_cache()
-        print("🎬 Starting Parallel Double-Feature Video Download...")
+        print(f"🎬 Starting Parallel Double-Feature Video Download ({orientation})...")
         results_map = {}
         max_workers = min(len(script_data), 8)
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_scene = {
-                executor.submit(self._process_scene_clips, scene): scene
+                executor.submit(self._process_scene_clips, scene, orientation): scene
                 for scene in script_data
             }
             for future in as_completed(future_to_scene):
