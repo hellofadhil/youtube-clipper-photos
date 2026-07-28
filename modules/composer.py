@@ -602,24 +602,32 @@ class Composer:
             )
             audio = inp.audio
 
+            vcodec_opts = self._get_vcodec_options()
+            if "nvenc" in self.vcodec.lower():
+                vcodec_opts["preset"] = "fast"
+                vcodec_opts["cq"] = 28
+            else:
+                vcodec_opts["preset"] = "ultrafast"
+                vcodec_opts["crf"] = 28
+
             command = (
                 ffmpeg
                 .output(
                     video,
                     audio,
                     str(output_path),
-                    vcodec=self.vcodec,
                     acodec="aac",
-                    preset="ultrafast",
-                    crf=28,
-                    b="400k",
-                    movflags="+faststart",
+                    **vcodec_opts
                 )
                 .global_args("-hide_banner", "-loglevel", "error")
             )
             command.run(overwrite_output=True, capture_stdout=True, capture_stderr=True)
             print(f"✅ PREVIEW GENERATED: {output_path}")
             return str(output_path)
+        except ffmpeg.Error as error:
+            err_msg = error.stderr.decode("utf-8", errors="ignore") if error.stderr else str(error)
+            print(f"⚠️ Preview Generation Warning: {err_msg.strip()}")
+            return None
         except Exception as error:
             print(f"⚠️ Preview Generation Warning: {error}")
             return None
