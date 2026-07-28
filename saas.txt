@@ -1,0 +1,56 @@
+================================================================================
+BUSINESS & ARCHITECTURE BLUEPRINT: BYOK SAAS (BRING YOUR OWN KEY) AUTO-SHORTS STUDIO
+================================================================================
+
+1. BUSINESS MODEL: BYOK (BRING YOUR OWN KEY)
+--------------------------------------------------------------------------------
+- Concept: Users input their own Gemini API Key & Pexels/Pixabay API Keys in Settings.
+- Operational Costs: Nearly $0 / Rp 0 for API token usage!
+- Profit Margin: 95%+ net profit on every subscription sold.
+- Zero Cost Overruns / Abuse Risk: Heavy AI & Stock API costs are borne directly by the user's own keys.
+
+
+2. PRICING TIERS & REVENUE PROJECTIONS
+--------------------------------------------------------------------------------
+A. LOCAL INDONESIA MARKET:
+   - Starter Tier: Rp 99.000 / month (Rp 949.000 / year) — 3 Autopilot Channels
+   - Pro Tier: Rp 199.000 / month (Rp 1.899.000 / year) — Unlimited Channels
+   - Revenue Projection (with just 50 active members):
+     * 30 Starter Members (30 x Rp 99k) = Rp 2,970,000
+     * 20 Pro Members (20 x Rp 199k)    = Rp 3,980,000
+     * Net Monthly Profit: ~Rp 6.95 Million / month (~Rp 82.8 Million / year)
+
+B. GLOBAL INTERNATIONAL MARKET (US / EUROPE / GUMROAD / STRIPE):
+   - Starter Tier: $19 USD / month ($179 USD / year) — 3 Autopilot Channels
+   - Pro Tier: $39 USD / month ($369 USD / year) — Unlimited Channels
+   - Revenue Projection (with just 50 active global members):
+     * 30 Starter Members (30 x $19) = $570
+     * 20 Pro Members (20 x $39)     = $780
+     * Net Monthly Profit: ~$1,350 USD / month (~$16,200 USD / year = ~Rp 258 Million / year)
+
+
+3. TECHNICAL INFRASTRUCTURE STACK
+--------------------------------------------------------------------------------
+A. FRONTEND & API GATEWAY
+   - Cloudflare Workers / Pages + Cloudflare D1 (SQL Database for User Accounts & Encrypted API Keys).
+   - User Keys encrypted via AES-256 before storing.
+
+B. ASYNCHRONOUS JOB QUEUE
+   - Cloudflare Queues / Workflows to handle simultaneous video render orders without timeout errors.
+
+C. SERVERLESS RENDER ENGINE
+   - Modal.com (Starter Tier: $30/month FREE compute credits every month).
+   - 10 GPU Concurrency (NVIDIA T4 / A10G).
+   - Render cost: ~$0.005 / short (~Rp 80 per video).
+   - $30 credit allows rendering up to 6,000 video shorts per month 100% FREE!
+
+D. OBJECT STORAGE
+   - Cloudflare R2 (Zero Egress Fees / $0 bandwidth transfer fee for video playback).
+   - Integrates with user's personal Google Drive / Kora Drive storage.
+
+
+4. ROADMAP TO LAUNCH
+--------------------------------------------------------------------------------
+Phase 1: Run your own 5 Autopilot Channels to build social proof and verified YouTube Studio analytics.
+Phase 2: Build in Public (share analytics proof on X, TikTok, YouTube).
+Phase 3: Launch SaaS Web App / BYOK Subscription.

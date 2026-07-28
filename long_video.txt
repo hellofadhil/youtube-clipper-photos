@@ -1,0 +1,46 @@
+================================================================================
+ARCHITECTURE & BLUEPRINT: YOUTUBE LONG-FORM VIDEO ENGINE (16:9 HORIZONTAL 8-10 MINS)
+================================================================================
+
+1. OVERVIEW & FINANCIAL POTENTIAL
+--------------------------------------------------------------------------------
+- Format: 1920x1080 Landscape (16:9 Aspect Ratio)
+- Duration: 8 to 10 Minutes (25 - 30 Scenes)
+- Target Audiences: Tier-1 US / Global Documentary & Edutainment Viewers
+- Revenue Potential:
+  * Shorts RPM: $0.05 - $0.10 / 1k views
+  * Long-Form RPM: $3.00 - $12.00 / 1k views (30x - 100x higher!)
+  * Unlocks YouTube Mid-Roll Ads (Multiple ads per video on 8+ minute content)
+  * Estimated Income at 100k views: $300 - $1,200 (Rp 4.8M - Rp 19.2M per video)
+
+
+2. TECHNICAL ARCHITECTURE ADJUSTMENTS
+--------------------------------------------------------------------------------
+A. VISUAL ASPECT RATIO & RESOLUTION (composer.py & asset_manager.py)
+   - Change target resolution from 1080x1920 to 1920x1080.
+   - Set Pexels & Pixabay API search parameters to orientation="landscape".
+   - Maintain yuv420p CFR 30fps physical normalization to guarantee 0 crashes.
+
+B. GLOBAL USED URLS REGISTRY (Zero-Duplicate Footage Guarantee)
+   - Implement self.used_urls = set() in AssetManager.
+   - Track every downloaded video URL across all 25-30 scenes (50-60 clips per video).
+   - Automatically exclude previously used URLs from candidate lists:
+     candidates = [c for c in candidates if c['url'] not in self.used_urls]
+   - Rotate keywords if a specific query exhausts candidates.
+
+C. SCRIPT RETENTION & TIMED CHAPTERS (brain.py)
+   - Expand script structure to 25 scenes (approx. 15-20s per scene).
+   - Generate automatic Timed Chapters / Timestamps (0:00 - Hook, 1:15 - Origin, 2:45 - Mechanism, etc.).
+   - Structure SEO Description into 4 parts: Synopsis, Timed Chapters, Engagement Question, and Viral Hashtags.
+   - Timed Chapters automatically enable YouTube Video Chapters & Google Search Key Moments indexing.
+
+D. AUDIO MIXING & BGM LOOPING (composer.py)
+   - Loop background music seamlessly over 8-10 minutes.
+   - Maintain dynamic BGM Sidechain Ducking (compress BGM volume when narration speaks, recover during pauses).
+   - Apply EBUR128 Loudnorm (-16 I, -1.5 TP, 11 LRA) for studio audio loudness compliance.
+
+
+3. EXECUTION ROADMAP
+--------------------------------------------------------------------------------
+- Add mode selector switch ("shorts_9_16" vs "long_16_9") in web_app.py and main.py.
+- Export metadata to final_long_metadata.txt.
