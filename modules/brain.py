@@ -1413,14 +1413,11 @@ Return JSON with:
             {"act": 5, "name": "ACT 5: REFLECTION & OUTRO CTA", "target": 12, "focus": "Moral takeaway, thought-provoking question, and subscribe CTA."}
         ]
 
-        all_scenes = []
-        scene_counter = 1
+        act_results = [None] * len(acts_plan)
 
-        print("  🧩 Generating Modular Chapters (5 Acts)...")
-        for chapter in acts_plan:
+        def generate_act_worker(idx: int, chapter: dict):
             target_count = chapter["target"]
-            print(f"    • Generating {chapter['name']} ({target_count} scenes)...")
-
+            start_id = sum(p["target"] for p in acts_plan[:idx]) + 1
             act_prompt = f"""
 You are writing {chapter['name']} for an 8.5-minute YouTube documentary about: "{topic}".
 {fact_block}
@@ -1429,32 +1426,47 @@ CHAPTER FOCUS: {chapter['focus']}
 
 Generate EXACTLY {target_count} scenes for this chapter.
 Each scene must have:
-- "id": integer starting at {scene_counter}
+- "id": integer starting at {start_id}
 - "text": Spoken narration text, 10 to 14 words per scene. Fast-paced, engaging.
 - "visual_1" & "visual_2": 2 distinct landscape stock video search queries (English, 16:9 physical objects/locations).
 - "mood": Emotional tone ("dramatic", "intense", "tragic", "mind-blowing", "reflective", "shocking").
 
 Return JSON matching the schema with key "scenes" containing {target_count} scene objects.
 """
-            act_data = self._call_gemini(act_prompt)
-            if isinstance(act_data, dict) and "scenes" in act_data and len(act_data["scenes"]) > 0:
-                act_scenes = act_data["scenes"]
-                for sc in act_scenes:
-                    sc["id"] = scene_counter
-                    scene_counter += 1
-                all_scenes.extend(act_scenes)
-            else:
-                for i in range(target_count):
-                    all_scenes.append({
-                        "id": scene_counter,
-                        "text": f"Investigating the deep secrets of {topic} during chapter {chapter['act']}.",
-                        "visual_1": f"{topic} documentary scene",
-                        "visual_2": "dark atmospheric cinematic drone shot",
-                        "mood": "dramatic"
-                    })
-                    scene_counter += 1
+            try:
+                act_data = self._call_gemini(act_prompt)
+                if isinstance(act_data, dict) and "scenes" in act_data and len(act_data["scenes"]) > 0:
+                    act_scenes = act_data["scenes"]
+                    for s_idx, sc in enumerate(act_scenes):
+                        sc["id"] = start_id + s_idx
+                    return idx, act_scenes
+            except Exception as err:
+                print(f"  ⚠️ Chapter {idx+1} generation fallback: {err}")
 
-        print(f"  ✅ Modular Chapter Generation Complete! Total Scenes: {len(all_scenes)}")
+            fallback_scenes = []
+            for i in range(target_count):
+                fallback_scenes.append({
+                    "id": start_id + i,
+                    "text": f"Investigating the deep secrets of {topic} during chapter {chapter['act']}.",
+                    "visual_1": f"{topic} documentary scene",
+                    "visual_2": "dark atmospheric cinematic drone shot",
+                    "mood": "dramatic"
+                })
+            return idx, fallback_scenes
+
+        print("  ⚡ Parallel Generating 5 Modular Chapters (5x Speedup)...")
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(generate_act_worker, idx, ch) for idx, ch in enumerate(acts_plan)]
+            for future in as_completed(futures):
+                idx, act_scenes = future.result()
+                act_results[idx] = act_scenes
+
+        all_scenes = []
+        for res in act_results:
+            if res:
+                all_scenes.extend(res)
+
+        print(f"  ✅ Parallel Chapter Generation Complete! Total Scenes: {len(all_scenes)}")
 
         master_script = {
             "topic": topic,
