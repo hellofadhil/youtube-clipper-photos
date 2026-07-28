@@ -1,3 +1,8 @@
+# GUI_METADATA_BRIDGE_BEGIN
+from gui_metadata_bridge import install as _install_gui_metadata_bridge
+_install_gui_metadata_bridge()
+# GUI_METADATA_BRIDGE_END
+
 import asyncio
 import json
 import os
