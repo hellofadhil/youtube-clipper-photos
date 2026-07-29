@@ -544,11 +544,117 @@ class Composer:
 
             if chunk_paths:
                 print(f"✨ Final Stitching {len(chunk_paths)} batch chunks into master video...")
-                return self.concatenate_with_transitions(
-                    [str(p) for p in chunk_paths],
+                return self.stitch_chunk_files_to_master(
+                    chunk_paths,
                     output_filename=output_filename,
-                    bgm_mood=bgm_mood,  # Apply BGM on final master video
+                    bgm_mood=bgm_mood,
                 )
+
+    def stitch_chunk_files_to_master(
+        self,
+        chunk_paths: list[Path],
+        output_filename: str = "final_long.mp4",
+        bgm_mood: str | None = None,
+    ) -> str | None:
+        """Fast & 100% stable final concat for pre-rendered video/audio chunks."""
+        output_path = self.final_dir / output_filename
+        self._safe_unlink(output_path)
+
+        v_streams = [ffmpeg.input(str(p)).video for p in chunk_paths]
+        a_streams = [ffmpeg.input(str(p)).audio for p in chunk_paths]
+
+        video_stream = ffmpeg.concat(*v_streams, v=1, a=0)
+        audio_stream = ffmpeg.concat(*a_streams, v=0, a=1)
+
+        total_duration = sum(self.get_duration(p) for p in chunk_paths)
+
+        # ── BGM selection & Sidechain Ducking ─────────────────────────────────
+        bgm_dir = Path.cwd() / "assets" / "bgm"
+        bgm_files: list[Path] = []
+
+        if bgm_mood:
+            mood_dir = bgm_dir / bgm_mood
+            if mood_dir.is_dir():
+                bgm_files = list(mood_dir.glob("*.mp3")) + list(mood_dir.glob("*.wav"))
+
+        if not bgm_files and bgm_dir.is_dir():
+            bgm_files = list(bgm_dir.glob("*.mp3")) + list(bgm_dir.glob("*.wav"))
+
+        if bgm_files:
+            bgm_path = random.choice(bgm_files)
+            print(f"🎵 Mixing BGM with Sidechain Audio Ducking: {bgm_path.name}")
+            bgm_input = (
+                ffmpeg.input(str(bgm_path), stream_loop=-1)
+                .audio
+                .filter("volume", 0.08)
+                .filter("atrim", duration=total_duration)
+                .filter("aresample", self.AUDIO_SAMPLE_RATE)
+                .filter(
+                    "aformat",
+                    sample_fmts="fltp",
+                    sample_rates=self.AUDIO_SAMPLE_RATE,
+                    channel_layouts="stereo",
+                )
+            )
+            try:
+                bgm_ducked = ffmpeg.filter(
+                    [bgm_input, audio_stream],
+                    "sidechaincompress",
+                    threshold=0.04,
+                    ratio=6,
+                    attack=10,
+                    release=200,
+                )
+                audio_stream = ffmpeg.filter(
+                    [audio_stream, bgm_ducked],
+                    "amix",
+                    inputs=2,
+                    duration="first",
+                    weights="1 0.1",
+                )
+            except Exception:
+                audio_stream = ffmpeg.filter(
+                    [audio_stream, bgm_input],
+                    "amix",
+                    inputs=2,
+                    duration="first",
+                    weights="1 0.1",
+                )
+            audio_stream = audio_stream.filter("volume", 1.5).filter("loudnorm", I=-14, TP=-1.0, LRA=11)
+        else:
+            print("⚠️ No BGM files found. Stitching master audio cleanly.")
+
+        command = (
+            ffmpeg
+            .output(
+                video_stream,
+                audio_stream,
+                str(output_path),
+                vcodec=self.vcodec,
+                acodec="aac",
+                preset="medium",
+                crf=18,
+                pix_fmt="yuv420p",
+                r=self.target_fps,
+                ar=self.AUDIO_SAMPLE_RATE,
+                ac=2,
+                movflags="+faststart",
+                video_track_timescale=self.target_fps * 1000,
+            )
+            .global_args("-hide_banner", "-loglevel", "error")
+        )
+
+        try:
+            command.run(
+                overwrite_output=True,
+                capture_stdout=True,
+                capture_stderr=True,
+            )
+            print(f"✅ FINAL MASTER VIDEO SAVED: {output_path}")
+            return str(output_path)
+        except ffmpeg.Error as error:
+            print(f"❌ Final Master Stitching Error: {self._error_text(error)}")
+            return None
 
         # Prepare SFX transition sound
         sfx_dir = Path.cwd() / "assets" / "sfx"
