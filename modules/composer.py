@@ -519,6 +519,37 @@ class Composer:
         if not existing_paths:
             return None
 
+        # For large scene counts (e.g. 100 scenes in longform documentaries), batch stitch in chunks of 10 scenes
+        # to prevent FFmpeg file-descriptor exhaustion and filtergraph stack limits.
+        if len(existing_paths) > 12:
+            print(f"⚡ Batch Stitching {len(existing_paths)} scenes in chunks of 10 for maximum FFmpeg stability...")
+            chunks_dir = self.temp_dir / "chunks"
+            chunks_dir.mkdir(parents=True, exist_ok=True)
+            chunk_size = 10
+            chunks = [existing_paths[i:i + chunk_size] for i in range(0, len(existing_paths), chunk_size)]
+            chunk_paths = []
+
+            for idx, chunk in enumerate(chunks):
+                chunk_output_filename = f"temp_chunk_{idx:02d}.mp4"
+                chunk_output_path = chunks_dir / chunk_output_filename
+                self._safe_unlink(chunk_output_path)
+
+                rendered_chunk = self.concatenate_with_transitions(
+                    [str(p) for p in chunk],
+                    output_filename=f"../temp/chunks/{chunk_output_filename}",
+                    bgm_mood=None,  # Do not apply BGM on individual chunks
+                )
+                if rendered_chunk and Path(rendered_chunk).is_file():
+                    chunk_paths.append(Path(rendered_chunk))
+
+            if chunk_paths:
+                print(f"✨ Final Stitching {len(chunk_paths)} batch chunks into master video...")
+                return self.concatenate_with_transitions(
+                    [str(p) for p in chunk_paths],
+                    output_filename=output_filename,
+                    bgm_mood=bgm_mood,  # Apply BGM on final master video
+                )
+
         # Prepare SFX transition sound
         sfx_dir = Path.cwd() / "assets" / "sfx"
         whoosh_path = sfx_dir / "whoosh.wav"
@@ -573,7 +604,7 @@ class Composer:
             )
 
             # Mix transition Whoosh SFX if available (subtle, non-intrusive)
-            if whoosh_path.is_file():
+            if len(existing_paths) <= 12 and whoosh_path.is_file():
                 try:
                     delay_ms = int(offset * 1000)
                     sfx_stream = (
