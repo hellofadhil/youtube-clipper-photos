@@ -291,7 +291,22 @@ async def render_video_step(
                 scenes = []
 
         if not scenes:
-            return "❌ No scenes found for rendering.", None, "", gr.update(visible=False), gr.update(visible=False)
+            fallback_file = Path.cwd() / "assets" / "final" / "generated_script.json"
+            if fallback_file.is_file():
+                try:
+                    data = json.loads(fallback_file.read_text(encoding="utf-8"))
+                    if isinstance(data, dict) and "scenes" in data and len(data["scenes"]) > 0:
+                        scenes = data["scenes"]
+                        print(f"📖 Loaded {len(scenes)} scenes automatically from saved generated_script.json")
+                        if not topic:
+                            topic = data.get("topic", "")
+                        if not title and "metadata" in data:
+                            title = data["metadata"].get("title", "")
+                except Exception as fb_err:
+                    print(f"⚠️ Fallback script load error: {fb_err}")
+
+        if not scenes:
+            return "❌ No scenes found for rendering. Silakan klik tombol 'Generate Topic & Script' terlebih dahulu di Tab 1.", None, "", gr.update(visible=False), gr.update(visible=False)
 
         bgm_mood = brain_instance.get_bgm_mood(topic)
 
