@@ -200,6 +200,18 @@ class Composer:
             .filter("setpts", "PTS-STARTPTS")
         )
 
+        tw = self.target_width
+        th = self.target_height
+        aspect_target = tw / th
+
+        # Pre-scale to guarantee frame covers target resolution before Ken Burns & crop
+        video = video.filter(
+            "scale",
+            w=f"if(gte(iw/ih,{aspect_target:.6f}),-2,{tw})",
+            h=f"if(gte(iw/ih,{aspect_target:.6f}),{th},-2)",
+            flags="lanczos",
+        )
+
         # Apply Ken Burns Slow Zoom (100% -> 110% zoom in)
         zoom_expr = f"1.0+0.10*(t/{duration:.3f})"
         video = (
@@ -212,10 +224,10 @@ class Composer:
             )
             .filter(
                 "crop",
-                self.target_width,
-                self.target_height,
-                x=f"(in_w-{self.target_width})/2",
-                y=f"(in_h-{self.target_height})/2",
+                tw,
+                th,
+                x=f"(in_w-{tw})/2",
+                y=f"(in_h-{th})/2",
             )
         )
         video = self._video_filters(video)
