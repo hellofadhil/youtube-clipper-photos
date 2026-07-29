@@ -370,39 +370,136 @@ def sync_render_video_wrapper(*args):
 # ─────────────────────────────────────────────────────────────────────────────
 
 custom_css = """
-body, .gradio-container {
-    background-color: #0f172a;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --primary-gradient: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #3b82f6 100%);
+    --accent-gradient: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+    --card-bg: rgba(15, 23, 42, 0.75);
+    --border-glow: rgba(99, 102, 241, 0.25);
 }
+
+body, .gradio-container {
+    background-color: #090d16 !important;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.12) 0px, transparent 50%) !important;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+    color: #f1f5f9 !important;
+}
+
 .main-header {
     text-align: center;
-    padding: 20px 0 10px 0;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border-bottom: 2px solid #334155;
-    margin-bottom: 20px;
-    border-radius: 12px;
+    padding: 32px 24px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-glow);
+    border-radius: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
+
 .main-header h1 {
-    color: #f8fafc;
-    font-size: 2.2rem;
+    font-size: 2.6rem;
     font-weight: 800;
     margin: 0;
+    background: linear-gradient(135deg, #c084fc 0%, #818cf8 50%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
 }
+
 .main-header p {
     color: #94a3b8;
-    font-size: 1rem;
-    margin-top: 5px;
+    font-size: 1.05rem;
+    margin-top: 8px;
+    font-weight: 500;
 }
+
+.badge-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
 .status-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    margin: 0 5px;
-    border-radius: 20px;
-    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    font-size: 0.82rem;
     font-weight: 600;
+    letter-spacing: 0.03em;
+    backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
 }
-.badge-active { background-color: #064e3b; color: #34d399; }
-.badge-inactive { background-color: #451a03; color: #fbbf24; }
+
+.badge-active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.15);
+}
+
+.badge-inactive {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
+}
+
+/* Custom Gradio Elements Polish */
+.gr-button-primary, button.primary-btn {
+    background: var(--primary-gradient) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.gr-button-primary:hover, button.primary-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5) !important;
+}
+
+.gr-button-secondary {
+    background: rgba(30, 41, 59, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: #e2e8f0 !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+}
+
+.gr-button-secondary:hover {
+    background: rgba(51, 65, 85, 0.9) !important;
+    border-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+div.block, .gr-box, .gr-panel {
+    background: var(--card-bg) !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    border-radius: 16px !important;
+}
+
+/* Tab styling */
+.tabs > .tab-nav > button.selected {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(99, 102, 241, 0.2)) !important;
+    border-bottom: 3px solid #818cf8 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+.tabs > .tab-nav > button {
+    font-weight: 600 !important;
+    border-radius: 10px 10px 0 0 !important;
+}
 """
 
 with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.themes.Soft()) as demo:
@@ -411,15 +508,15 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
         <div class="main-header">
             <h1>🎬 AutoShorts AI — Web Studio</h1>
             <p>Generate, Edit, and Render High-Quality YouTube Shorts with AI</p>
-            <div style="margin-top: 10px;">
+            <div class="badge-container">
                 <span class="status-badge {'badge-active' if PEXELS_ACTIVE else 'badge-inactive'}">
-                    Pexels: {'Active' if PEXELS_ACTIVE else 'Disabled'}
+                    ● Pexels: {'Active' if PEXELS_ACTIVE else 'Disabled'}
                 </span>
                 <span class="status-badge {'badge-active' if PIXABAY_ACTIVE else 'badge-inactive'}">
-                    Pixabay Fallback: {'Active' if PIXABAY_ACTIVE else 'Disabled'}
+                    ● Pixabay Fallback: {'Active' if PIXABAY_ACTIVE else 'Disabled'}
                 </span>
                 <span class="status-badge badge-active">
-                    Codec: {VCODEC.upper()}
+                    ⚡ Codec: {VCODEC.upper()}
                 </span>
             </div>
         </div>
@@ -430,8 +527,15 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
     scenes_json_state = gr.State("[]")
 
     with gr.Tabs():
-        # ── TAB 1: GENERATE SCRIPT & TOPIC ──────────────────────────────────
-        with gr.TabItem("1. 🧠 Topic & Script Generator"):
+        # ── TAB 1: SCRIPT & SCENE EDITOR STUDIO ──────────────────────────────────
+        with gr.TabItem("🧠 Studio Creator & Editor"):
+            gr.Markdown("### ⚡ Quick Topic Presets")
+            with gr.Row():
+                preset_cat = gr.Button("🐱 Kucing & Hewan Lucu", variant="secondary", size="sm")
+                preset_space = gr.Button("🌌 Sains & Luar Angkasa", variant="secondary", size="sm")
+                preset_history = gr.Button("📜 Misteri Sejarah", variant="secondary", size="sm")
+                preset_facts = gr.Button("💡 Fakta Unik Dunia", variant="secondary", size="sm")
+
             with gr.Row():
                 with gr.Column(scale=1):
                     category_dropdown = gr.Dropdown(
@@ -442,7 +546,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                     )
                     custom_topic_input = gr.Textbox(
                         label="📍 Custom Topic / Location (Optional)",
-                        placeholder="e.g. 'How AI works', 'Become an Astronaut', 'Paris'",
+                        placeholder="e.g. 'Cats & Raw Fish', 'How Black Holes Work', 'Tokyo'",
                         interactive=True,
                     )
                     video_format_radio = gr.Radio(
@@ -468,17 +572,18 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                         regen_script_btn = gr.Button("🔄 Generate Topik Baru", variant="secondary", size="lg")
 
                 with gr.Column(scale=2):
-                    status_box_1 = gr.Markdown(value="*Click button to generate topic & script...*")
+                    status_box_1 = gr.Markdown(value="*Pilih kategori atau ketik topik, lalu klik tombol **Generate Topic & Script**...*")
 
                     topic_output = gr.Textbox(label="📌 Selected Topic", interactive=False)
                     title_input = gr.Textbox(label="🏷️ Viral Title", interactive=True)
                     desc_input = gr.TextArea(label="📝 SEO Description", interactive=True)
                     tags_input = gr.Textbox(label="3️⃣ Hashtags", interactive=True)
 
-                    direct_render_btn = gr.Button("🎬 Suka Topik Ini? Langsung Render Video!", variant="stop", size="lg")
+                    direct_render_btn = gr.Button("🎬 Render Shorts Video Sekarang!", variant="primary", size="lg")
 
+            gr.Markdown("---")
             gr.Markdown("### 📜 Interactive Scene Plan Editor")
-            gr.Markdown("*You can edit narration text or visual queries directly in the table below before rendering!*")
+            gr.Markdown("*Kamu bisa mengedit kalimat narasi atau kata kunci pencarian visual di tabel di bawah sebelum di-render!*")
 
             scenes_dataframe = gr.Dataframe(
                 headers=["Scene ID", "Narration Text", "Visual Search Query 1", "Visual Search Query 2", "Mood"],
@@ -488,41 +593,37 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                 wrap=True,
             )
 
-            gr.Markdown("---")
             with gr.Row():
                 with gr.Column(scale=1):
                     tab1_status_box = gr.Markdown(value="")
                     tab1_metadata_output = gr.TextArea(label="📄 Saved SEO Metadata", interactive=False, visible=False)
                 with gr.Column(scale=1):
                     tab1_video_player = gr.Video(
-                        label="🎥 Rendered Shorts Video (9:16 / 16:9)",
+                        label="🎥 Rendered Shorts Video Preview",
                         interactive=False,
                         autoplay=True,
                         visible=False,
                     )
 
-        # ── TAB 2: FOOTAGE PREVIEW ──────────────────────────────────────────
-        with gr.TabItem("2. 🖼️ Visual Footage Preview"):
+        # ── TAB 2: RENDER & EXPORT STUDIO ──────────────────────────────────
+        with gr.TabItem("🎬 Render & Export Studio"):
             with gr.Row():
                 with gr.Column(scale=1):
-                    fetch_assets_btn = gr.Button("🔎 Fetch & Download Video Clips", variant="secondary", size="lg")
-                    status_box_2 = gr.Markdown(value="*Click to search and preview stock footage...*")
-                with gr.Column(scale=1):
-                    preview_clip = gr.Video(label="🎬 Sample Footage Preview", interactive=False)
-
-        # ── TAB 3: RENDER & EXPORT ──────────────────────────────────────────
-        with gr.TabItem("3. 🎬 Render Final Short"):
-            with gr.Row():
-                with gr.Column(scale=1):
-                    render_btn = gr.Button("🎬 RENDER FINAL SHORTS VIDEO", variant="primary", size="lg")
-                    status_box_3 = gr.Markdown(value="*Ready to render final video...*")
-                    metadata_output = gr.TextArea(label="📄 Final SEO Metadata", interactive=False)
+                    render_btn = gr.Button("🚀 START FINAL RENDERING", variant="primary", size="lg")
+                    status_box_3 = gr.Markdown(value="*Siap untuk melakukan proses rendering video final...*")
+                    metadata_output = gr.TextArea(label="📄 Final SEO Metadata (Copy to YouTube)", interactive=False)
                 with gr.Column(scale=1):
                     final_video_player = gr.Video(
-                        label="🎥 Final Rendered Shorts (9:16 / 16:9)",
+                        label="🎥 Final Rendered Video (9:16 / 16:9)",
                         interactive=False,
                         autoplay=True,
                     )
+
+    # ── Quick Preset Callbacks ───────────────────────────────────────────────
+    preset_cat.click(fn=lambda: "Why Cats Love Raw Fish & Seafood", inputs=[], outputs=[custom_topic_input])
+    preset_space.click(fn=lambda: "What Happens Inside a Black Hole", inputs=[], outputs=[custom_topic_input])
+    preset_history.click(fn=lambda: "The Lost Treasures of Ancient Egypt", inputs=[], outputs=[custom_topic_input])
+    preset_facts.click(fn=lambda: "Mind Blowing Facts About Human Brain", inputs=[], outputs=[custom_topic_input])
 
     # ── Event Callbacks ──────────────────────────────────────────────────────
     gen_script_btn.click(
@@ -573,12 +674,6 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             tab1_video_player,
             tab1_metadata_output,
         ],
-    )
-
-    fetch_assets_btn.click(
-        fn=fetch_assets_step,
-        inputs=[scenes_json_state, scenes_dataframe, video_format_radio],
-        outputs=[status_box_2, scenes_json_state, preview_clip],
     )
 
     render_btn.click(
