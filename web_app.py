@@ -529,13 +529,6 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
     with gr.Tabs():
         # ── TAB 1: SCRIPT & SCENE EDITOR STUDIO ──────────────────────────────────
         with gr.TabItem("🧠 Studio Creator & Editor"):
-            gr.Markdown("### ⚡ Quick Topic Presets")
-            with gr.Row():
-                preset_cat = gr.Button("🐱 Kucing & Hewan Lucu", variant="secondary", size="sm")
-                preset_space = gr.Button("🌌 Sains & Luar Angkasa", variant="secondary", size="sm")
-                preset_history = gr.Button("📜 Misteri Sejarah", variant="secondary", size="sm")
-                preset_facts = gr.Button("💡 Fakta Unik Dunia", variant="secondary", size="sm")
-
             with gr.Row():
                 with gr.Column(scale=1):
                     category_dropdown = gr.Dropdown(
@@ -618,12 +611,6 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                         interactive=False,
                         autoplay=True,
                     )
-
-    # ── Quick Preset Callbacks ───────────────────────────────────────────────
-    preset_cat.click(fn=lambda: "Why Cats Love Raw Fish & Seafood", inputs=[], outputs=[custom_topic_input])
-    preset_space.click(fn=lambda: "What Happens Inside a Black Hole", inputs=[], outputs=[custom_topic_input])
-    preset_history.click(fn=lambda: "The Lost Treasures of Ancient Egypt", inputs=[], outputs=[custom_topic_input])
-    preset_facts.click(fn=lambda: "Mind Blowing Facts About Human Brain", inputs=[], outputs=[custom_topic_input])
 
     # ── Event Callbacks ──────────────────────────────────────────────────────
     gen_script_btn.click(
