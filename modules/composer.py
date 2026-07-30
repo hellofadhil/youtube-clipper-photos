@@ -236,13 +236,13 @@ class Composer:
                 "scale", eval="init",
                 w=f"ceil(iw*1.15/2)*2",
                 h=f"ceil(ih*1.15/2)*2",
-            ).filter("crop", tw, th, eval="frame", x=f"(in_w-{tw})*(1-t/{dur_str})", y=f"(in_h-{th})/2")
+            ).filter("crop", tw, th, x=f"(in_w-{tw})*(1-t/{dur_str})", y=f"(in_h-{th})/2")
         elif motion_mode == "pan_right":
             video = video.filter(
                 "scale", eval="init",
                 w=f"ceil(iw*1.15/2)*2",
                 h=f"ceil(ih*1.15/2)*2",
-            ).filter("crop", tw, th, eval="frame", x=f"(in_w-{tw})*(t/{dur_str})", y=f"(in_h-{th})/2")
+            ).filter("crop", tw, th, x=f"(in_w-{tw})*(t/{dur_str})", y=f"(in_h-{th})/2")
         else:  # Standard Smooth Zoom In
             zoom_expr = f"1.0+0.12*(t/{dur_str})"
             video = video.filter(
