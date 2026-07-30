@@ -32,7 +32,7 @@ class SceneOutput(BaseModel):
 
 class EdutainmentOutput(BaseModel):
     metadata: MetadataOutput
-    scenes: list[SceneOutput] = Field(min_length=7, max_length=7)
+    scenes: list[SceneOutput] = Field(min_length=7, max_length=8)
 
 
 class ScenerySceneOutput(BaseModel):
