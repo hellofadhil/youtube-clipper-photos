@@ -961,3 +961,39 @@ class Composer:
         except Exception as error:
             print(f"⚠️ Preview Generation Warning: {error}")
             return None
+
+    def extract_thumbnail(
+        self,
+        input_video_path: str,
+        output_filename: str = "thumbnail.jpg",
+    ) -> str | None:
+        """Extract an HD cover thumbnail from Scene 1 (t=0.6s) with title overlay pre-rendered."""
+        output_path = self.final_dir / output_filename
+        self._safe_unlink(output_path)
+
+        try:
+            import subprocess
+            cmd = [
+                "ffmpeg",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-ss",
+                "0.6",
+                "-i",
+                str(input_video_path),
+                "-vframes",
+                "1",
+                "-q:v",
+                "2",
+                str(output_path),
+            ]
+            subprocess.run(cmd, check=True)
+            if output_path.is_file() and output_path.stat().st_size > 0:
+                print(f"📸 HIGH-IMPACT THUMBNAIL SAVED: {output_path}")
+                return str(output_path)
+            return None
+        except Exception as error:
+            print(f"⚠️ Thumbnail Extraction Warning: {error}")
+            return None

@@ -344,6 +344,20 @@ async def render_video_step(
         if not final_video_path or not os.path.exists(final_video_path):
             return "❌ Final stitching failed.", None, "", gr.update(visible=False), gr.update(visible=False)
 
+        # 5. Extract High-Impact Cover Thumbnail from Scene 1
+        thumb_path = composer.extract_thumbnail(final_video_path)
+
+        # Extract SEO tags from saved generated_script.json if present
+        tags = ""
+        fallback_file = Path.cwd() / "assets" / "final" / "generated_script.json"
+        if fallback_file.is_file():
+            try:
+                data = json.loads(fallback_file.read_text(encoding="utf-8"))
+                if isinstance(data, dict) and "metadata" in data:
+                    tags = data["metadata"].get("tags", "")
+            except Exception:
+                pass
+
         # Save metadata text file
         meta_path = os.path.join(os.path.dirname(final_video_path), "final_short_metadata.txt")
         meta_content = (
@@ -353,18 +367,21 @@ async def render_video_step(
             f"TITLE: {title}\n\n"
             f"DESCRIPTION:\n{description}\n\n"
             f"HASHTAGS:\n{hashtags}\n\n"
-            f"🔴 RECOMMENDED PINNED COMMENT (SUBSCRIBER BOOSTER):\n"
-            f"Which part of this dark history shocked you the most? 💀 Drop your thoughts below and SUBSCRIBE for Part 2 tomorrow! 🔔\n"
+            f"SEO SEARCH TAGS:\n{tags if tags else 'educational shorts, viral history, documented events, strange history, mystery'}\n\n"
+            f"🔴 RECOMMENDED PINNED COMMENT (ENGAGEMENT BOOSTER):\n"
+            f"Which part of this story shocked you the most? 💀 Drop your thoughts below! 🔔\n"
         )
         with open(meta_path, "w", encoding="utf-8") as f:
             f.write(meta_content)
 
         progress(1.0, desc="Video rendering complete!")
 
+        thumb_msg = f"\n📸 **Thumbnail Extracted**: `{thumb_path}`" if thumb_path else ""
         status_msg = (
             f"🎉 **Video Render Completed Successfully!**\n\n"
             f"🎬 **File**: `{os.path.basename(final_video_path)}`\n"
             f"📄 **Metadata Saved**: `{meta_path}`"
+            f"{thumb_msg}"
         )
 
         return (

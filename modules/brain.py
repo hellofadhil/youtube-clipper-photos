@@ -19,6 +19,7 @@ class MetadataOutput(BaseModel):
     title: str
     description: str
     hashtags: str
+    tags: str = ""
 
 
 class SceneOutput(BaseModel):
@@ -1639,7 +1640,7 @@ Generate SEO metadata and exactly 7 fast-paced scenes following this STRICT 7-ST
 - Scene 4 [MECHANISM & PATTERN INTERRUPTER]: How it physically happened + a mid-script retention re-hook (e.g. "But the real danger began next...", "What researchers unscaled next changed everything..."). Prevents 30-second viewer drop-off!
 - Scene 5 [HUMAN & EMOTIONAL IMPACT]: Real-world human, environmental, or societal consequence. (DO NOT skip human impact; pure numbers without human context reduce emotional retention).
 - Scene 6 [PLANETARY & UNEXPECTED EFFECT]: Secondary mind-blowing consequence or unexpected revelation (axis shift, rotation change, deep space ripple, hidden secret).
-- Scene 7 [CLOSING & HYBRID CTA]: A memorable final statement or perspective shift + a high-converting Hybrid Call-To-Action (Engagement Question + Subscribe Hook). Scene 7 text MUST seamlessly end with a short provocative question to drive comment section debate AND a quick subscribe call (e.g. "What would you have done? Comment below and subscribe for more!", "Do you think this was an accident? Drop your thoughts below and subscribe!"). BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
+- Scene 7 [CLOSING & SEAMLESS ENDLESS LOOP]: A memorable final statement or perspective shift + a high-converting provocative engagement question. SEAMLESS LOOP REQUIREMENT: The final spoken words of Scene 7 MUST naturally and fluidly connect back into the opening phrase of Scene 1 (e.g. ending with "...and the reason why is because..." or "...which explains why..."), encouraging viewers to re-watch 1.5x-2x seamlessly! BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
 
 ══════════════════════════════════════════════════
 UNIVERSAL SCRIPT RULES (STRICT COMPLIANCE REQUIRED)
@@ -1677,6 +1678,7 @@ METADATA RULES:
 - "title": Clean, ultra-punchy viral title (under 50 chars) focusing on the single core mind-blowing claim with 1-2 emojis. Include concrete measurements or physical scale if applicable (e.g. "A Massive Pyramid Hidden 25 Meters Underwater 🌊🏛️").
 - "description": Exactly 2-3 engaging sentences. Sentence 1: Shocking core claim with specific location/event details and concrete numbers. Sentence 2: Physical/historical mechanism. Sentence 3: MUST end with an open-ended engagement question to drive comment section activity (e.g., "Is it a lost human civilization, or a creation of nature? What do you think?").
 - "hashtags": Exactly 5 viral hashtags. Must include: 1x #Shorts, 2x Category Niche (e.g. #History #Archaeology), 2x Specific Topic keywords (e.g. #Underwater #Yonaguni).
+- "tags": 15 to 20 comma-separated high-ranking YouTube search tags tailored specifically to this category niche and topic (e.g. "dark history, documented history, historical mystery, uncensored history, strange events, educational shorts, history facts").
 
 ══════════════════════════════════════════════════
 CATEGORY-SPECIFIC VISUAL GUIDE:
