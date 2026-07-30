@@ -350,7 +350,9 @@ async def render_video_step(
             f"AUDIO MODE: {'BGM Only' if is_bgm_only else 'Voice + BGM'}\n\n"
             f"TITLE: {title}\n\n"
             f"DESCRIPTION:\n{description}\n\n"
-            f"HASHTAGS:\n{hashtags}\n"
+            f"HASHTAGS:\n{hashtags}\n\n"
+            f"🔴 RECOMMENDED PINNED COMMENT (SUBSCRIBER BOOSTER):\n"
+            f"Which part of this dark history shocked you the most? 💀 Drop your thoughts below and SUBSCRIBE for Part 2 tomorrow! 🔔\n"
         )
         with open(meta_path, "w", encoding="utf-8") as f:
             f.write(meta_content)

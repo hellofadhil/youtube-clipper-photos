@@ -56,9 +56,9 @@ class AudioEngine:
 
     @staticmethod
     def create_ass_subtitles(
-        word_boundaries, ass_path, total_duration, text_fallback="", words_per_group=2, hook_title=""
+        word_boundaries, ass_path, total_duration, text_fallback="", words_per_group=2, hook_title="", is_last_scene=False
     ):
-        """Create a modern YouTube Shorts smart-highlight ASS subtitle file with optional Top Hook Banner."""
+        """Create a modern YouTube Shorts smart-highlight ASS subtitle file with optional Top Hook Banner and End Subscribe CTA."""
         if not word_boundaries and text_fallback:
             words = text_fallback.strip().split()
             if words:
@@ -101,6 +101,7 @@ class AudioEngine:
             "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Encoding, MarginL, MarginR, MarginV, Alignment, Outline, Shadow\n"
             f"Style: Default,{fontname},76,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,90,90,560,2,6,3\n"
             f"Style: HookHeader,{fontname},56,&H0000FFFF,&H00FFFFFF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,3,0,50,50,220,8,5,3\n"
+            f"Style: SubBanner,{fontname},52,&H00FFFFFF,&H000000FF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,3,0,50,50,240,2,5,3\n"
             f"{watermark_style_line}\n"
             "[Events]\n"
             "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
@@ -129,7 +130,13 @@ class AudioEngine:
                 clean_hook = clean_hook[:40] + "..."
             hook_end_time = min(3.5, total_duration)
             events.append(
-                f"Dialogue: 0,0:00:00.00,{format_time(hook_end_time)},HookHeader,,0,0,0,,{clean_hook}"
+                f"Dialogue: 0,0:00:00.00,{format_time(hook_end_time)},HookHeader,,0,0,0,,{{\\c&H0000FFFF&}}🔥 TOPIC: {{\\c&H00FFFFFF&}}{clean_hook}"
+            )
+
+        if is_last_scene:
+            sub_start_time = max(0.5, total_duration - 3.5)
+            events.append(
+                f"Dialogue: 0,{format_time(sub_start_time)},{format_time(total_duration)},SubBanner,,0,0,0,,{{\\c&H000000FF&}}🔴 SUBSCRIBE FOR DAILY DARK HISTORY"
             )
 
         chunks = [
@@ -212,8 +219,9 @@ class AudioEngine:
                 scene["duration"] = duration
 
                 hook_to_pass = title if scene_id == 1 else ""
+                is_last = (scene_id == len(script_data))
                 generated_ass = self.create_ass_subtitles(
-                    word_boundaries, ass_path, duration, text_fallback=text, hook_title=hook_to_pass
+                    word_boundaries, ass_path, duration, text_fallback=text, hook_title=hook_to_pass, is_last_scene=is_last
                 )
                 scene["ass_path"] = generated_ass
                 print(
