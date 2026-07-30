@@ -315,7 +315,9 @@ async def render_video_step(
         category_voice = os.getenv("TTS_VOICE") or selected_category.get("voice", "en-US-AvaNeural")
         category_rate = os.getenv("TTS_RATE") or selected_category.get("rate", "+0%")
         audio_engine = AudioEngine(voice=category_voice, rate=category_rate)
-        scenes = await audio_engine.process_script(scenes, bgm_only=is_bgm_only, title=title)
+        scenes = await audio_engine.process_script(
+            scenes, bgm_only=is_bgm_only, title=title, category_name=selected_category.get("name", "")
+        )
 
         # 2. Download Assets if missing
         progress(0.5, desc=f"Fetching video clips ({orientation})...")

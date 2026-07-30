@@ -56,7 +56,7 @@ class AudioEngine:
 
     @staticmethod
     def create_ass_subtitles(
-        word_boundaries, ass_path, total_duration, text_fallback="", words_per_group=2, hook_title="", is_last_scene=False
+        word_boundaries, ass_path, total_duration, text_fallback="", words_per_group=2, hook_title="", is_last_scene=False, category_name=""
     ):
         """Create a modern YouTube Shorts smart-highlight ASS subtitle file with optional Top Hook Banner and End Subscribe CTA."""
         if not word_boundaries and text_fallback:
@@ -133,10 +133,19 @@ class AudioEngine:
                 f"Dialogue: 0,0:00:00.00,{format_time(hook_end_time)},HookHeader,,0,0,0,,{{\\c&H0000FFFF&}}🔥 TOPIC: {{\\c&H00FFFFFF&}}{clean_hook}"
             )
 
-        if is_last_scene:
+        show_sub_banner = os.getenv("SHOW_SUBSCRIBE_BANNER", "true").lower() in ("true", "1", "yes")
+        if is_last_scene and show_sub_banner:
             sub_start_time = max(0.5, total_duration - 3.5)
+            channel_env = os.getenv("CHANNEL_NAME", "").strip()
+            if channel_env:
+                cta_text = f"🔴 SUBSCRIBE TO {channel_env.upper()}"
+            elif category_name:
+                cta_text = f"🔴 SUBSCRIBE FOR MORE {category_name.upper()}"
+            else:
+                cta_text = "🔴 SUBSCRIBE FOR MORE DAILY CONTENT"
+
             events.append(
-                f"Dialogue: 0,{format_time(sub_start_time)},{format_time(total_duration)},SubBanner,,0,0,0,,{{\\c&H000000FF&}}🔴 SUBSCRIBE FOR DAILY DARK HISTORY"
+                f"Dialogue: 0,{format_time(sub_start_time)},{format_time(total_duration)},SubBanner,,0,0,0,,{{\\c&H000000FF&}}{cta_text}"
             )
 
         chunks = [
@@ -180,7 +189,7 @@ class AudioEngine:
 
         return ass_path
 
-    async def process_script(self, script_data, bgm_only: bool = False, title: str = ""):
+    async def process_script(self, script_data, bgm_only: bool = False, title: str = "", category_name: str = ""):
         """Process all scenes with optional top hook header for Scene 1."""
         if isinstance(script_data, dict):
             if not title:
@@ -221,7 +230,7 @@ class AudioEngine:
                 hook_to_pass = title if scene_id == 1 else ""
                 is_last = (scene_id == len(script_data))
                 generated_ass = self.create_ass_subtitles(
-                    word_boundaries, ass_path, duration, text_fallback=text, hook_title=hook_to_pass, is_last_scene=is_last
+                    word_boundaries, ass_path, duration, text_fallback=text, hook_title=hook_to_pass, is_last_scene=is_last, category_name=category_name
                 )
                 scene["ass_path"] = generated_ass
                 print(
