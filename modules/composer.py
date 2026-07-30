@@ -496,59 +496,43 @@ class Composer:
         except Exception as error:
             print(f"⚠️ Could not generate default SFX: {error}")
 
-    def concatenate_with_transitions(
-        self,
-        video_paths: Sequence[str],
-        output_filename: str = "final_short.mp4",
-        bgm_mood: str | None = None,
-    ) -> str | None:
-        """Stitch normalized scenes using xfade/acrossfade safely.
+    def _concat_demuxer_fallback(self, chunk_paths: list[Path], output_filename: str) -> str | None:
+        """Ultimate zero-fail fallback: FFmpeg concat demuxer with fast copy or re-encode."""
+        try:
+            output_path = self.final_dir / output_filename
+            self._safe_unlink(output_path)
+            list_file = self.temp_dir / f"concat_list_{random.randint(1000, 9999)}.txt"
+            with open(list_file, "w", encoding="utf-8") as f:
+                for p in chunk_paths:
+                    f.write(f"file '{p.resolve().as_posix()}'\n")
 
-        Args:
-            video_paths: Ordered list of rendered scene MP4 paths.
-            output_filename: Name of the output file inside assets/final/.
-            bgm_mood: Optional BGM genre subfolder name (e.g. 'cinematic', 'lofi',
-                      'tropical'). When provided the composer looks in
-                      assets/bgm/{bgm_mood}/ first, then falls back to assets/bgm/.
-        """
-        print("🎞️ Stitching final video...")
-        output_path = self.final_dir / output_filename
-        self._safe_unlink(output_path)
+            import subprocess
+            # Try fast stream copy first
+            cmd = [
+                "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                "-f", "concat", "-safe", "0", "-i", str(list_file),
+                "-c", "copy", str(output_path)
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            if res.returncode == 0 and output_path.is_file() and output_path.stat().st_size > 0:
+                self._safe_unlink(list_file)
+                print(f"✅ ULTIMATE FALLBACK MASTER VIDEO SAVED (Concat Stream Copy): {output_path}")
+                return str(output_path)
 
-        existing_paths = [Path(path) for path in video_paths if Path(path).is_file()]
-        if not existing_paths:
-            return None
-
-        # For large scene counts (e.g. 100 scenes in longform documentaries), batch stitch in chunks of 10 scenes
-        # to prevent FFmpeg file-descriptor exhaustion and filtergraph stack limits.
-        if len(existing_paths) > 12:
-            print(f"⚡ Batch Stitching {len(existing_paths)} scenes in chunks of 10 for maximum FFmpeg stability...")
-            chunks_dir = self.temp_dir / "chunks"
-            chunks_dir.mkdir(parents=True, exist_ok=True)
-            chunk_size = 10
-            chunks = [existing_paths[i:i + chunk_size] for i in range(0, len(existing_paths), chunk_size)]
-            chunk_paths = []
-
-            for idx, chunk in enumerate(chunks):
-                chunk_output_filename = f"temp_chunk_{idx:02d}.mp4"
-                chunk_output_path = chunks_dir / chunk_output_filename
-                self._safe_unlink(chunk_output_path)
-
-                rendered_chunk = self.concatenate_with_transitions(
-                    [str(p) for p in chunk],
-                    output_filename=f"../temp/chunks/{chunk_output_filename}",
-                    bgm_mood=None,  # Do not apply BGM on individual chunks
-                )
-                if rendered_chunk and Path(rendered_chunk).is_file():
-                    chunk_paths.append(Path(rendered_chunk))
-
-            if chunk_paths:
-                print(f"✨ Final Stitching {len(chunk_paths)} batch chunks into master video...")
-                return self.stitch_chunk_files_to_master(
-                    chunk_paths,
-                    output_filename=output_filename,
-                    bgm_mood=bgm_mood,
-                )
+            # If stream copy fails due to container flags, re-encode audio/video cleanly
+            cmd_reencode = [
+                "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                "-f", "concat", "-safe", "0", "-i", str(list_file),
+                "-c:v", self.vcodec, "-c:a", "aac", "-pix_fmt", "yuv420p", str(output_path)
+            ]
+            res_reencode = subprocess.run(cmd_reencode, capture_output=True, text=True)
+            self._safe_unlink(list_file)
+            if res_reencode.returncode == 0 and output_path.is_file() and output_path.stat().st_size > 0:
+                print(f"✅ ULTIMATE FALLBACK MASTER VIDEO SAVED (Concat Re-encode): {output_path}")
+                return str(output_path)
+        except Exception as err:
+            print(f"❌ Ultimate Fallback Error: {err}")
+        return None
 
     def stitch_chunk_files_to_master(
         self,
@@ -650,11 +634,68 @@ class Composer:
                 capture_stdout=True,
                 capture_stderr=True,
             )
-            print(f"✅ FINAL MASTER VIDEO SAVED: {output_path}")
-            return str(output_path)
-        except ffmpeg.Error as error:
-            print(f"❌ Final Master Stitching Error: {self._error_text(error)}")
+            if output_path.is_file() and output_path.stat().st_size > 0:
+                print(f"✅ FINAL MASTER VIDEO SAVED: {output_path}")
+                return str(output_path)
+        except Exception as error:
+            print(f"⚠️ Master Filtergraph Stitching Error: {self._error_text(error) if isinstance(error, ffmpeg.Error) else error}")
+
+        print("🔄 Running Ultimate Concat Demuxer Fallback...")
+        return self._concat_demuxer_fallback(chunk_paths, output_filename)
+
+    def concatenate_with_transitions(
+        self,
+        video_paths: Sequence[str],
+        output_filename: str = "final_short.mp4",
+        bgm_mood: str | None = None,
+    ) -> str | None:
+        """Stitch normalized scenes using xfade/acrossfade safely.
+
+        Args:
+            video_paths: Ordered list of rendered scene MP4 paths.
+            output_filename: Name of the output file inside assets/final/.
+            bgm_mood: Optional BGM genre subfolder name (e.g. 'cinematic', 'lofi',
+                      'tropical'). When provided the composer looks in
+                      assets/bgm/{bgm_mood}/ first, then falls back to assets/bgm/.
+        """
+        print("🎞️ Stitching final video...")
+        output_path = self.final_dir / output_filename
+        self._safe_unlink(output_path)
+
+        existing_paths = [Path(path) for path in video_paths if Path(path).is_file()]
+        if not existing_paths:
             return None
+
+        # For large scene counts (e.g. 100 scenes in longform documentaries), batch stitch in chunks of 10 scenes
+        # to prevent FFmpeg file-descriptor exhaustion and filtergraph stack limits.
+        if len(existing_paths) > 12:
+            print(f"⚡ Batch Stitching {len(existing_paths)} scenes in chunks of 10 for maximum FFmpeg stability...")
+            chunks_dir = self.temp_dir / "chunks"
+            chunks_dir.mkdir(parents=True, exist_ok=True)
+            chunk_size = 10
+            chunks = [existing_paths[i:i + chunk_size] for i in range(0, len(existing_paths), chunk_size)]
+            chunk_paths = []
+
+            for idx, chunk in enumerate(chunks):
+                chunk_output_filename = f"temp_chunk_{idx:02d}.mp4"
+                chunk_output_path = chunks_dir / chunk_output_filename
+                self._safe_unlink(chunk_output_path)
+
+                rendered_chunk = self.concatenate_with_transitions(
+                    [str(p) for p in chunk],
+                    output_filename=f"../temp/chunks/{chunk_output_filename}",
+                    bgm_mood=None,  # Do not apply BGM on individual chunks
+                )
+                if rendered_chunk and Path(rendered_chunk).is_file():
+                    chunk_paths.append(Path(rendered_chunk))
+
+            if chunk_paths:
+                print(f"✨ Final Stitching {len(chunk_paths)} batch chunks into master video...")
+                return self.stitch_chunk_files_to_master(
+                    chunk_paths,
+                    output_filename=output_filename,
+                    bgm_mood=bgm_mood,
+                )
 
         # Prepare SFX transition sound
         sfx_dir = Path.cwd() / "assets" / "sfx"
@@ -822,8 +863,21 @@ class Composer:
             print(f"✅ FINAL VIDEO SAVED: {output_path}")
             return str(output_path)
         except ffmpeg.Error as error:
-            print(f"❌ Stitching Error: {self._error_text(error)}")
-            return None
+            print(f"⚠️ Transition Stitching Error: {self._error_text(error)}")
+            print("🔄 Falling back to direct concatenation master stitch...")
+            return self.stitch_chunk_files_to_master(
+                existing_paths,
+                output_filename=output_filename,
+                bgm_mood=bgm_mood,
+            )
+        except Exception as error:
+            print(f"⚠️ Stitching Exception: {error}")
+            print("🔄 Falling back to direct concatenation master stitch...")
+            return self.stitch_chunk_files_to_master(
+                existing_paths,
+                output_filename=output_filename,
+                bgm_mood=bgm_mood,
+            )
 
     def generate_preview(
         self,
