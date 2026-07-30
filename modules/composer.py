@@ -151,7 +151,7 @@ class Composer:
             return 0.0
 
     def _video_filters(self, stream):
-        """Return a graph with deterministic video link parameters."""
+        """Return a graph with deterministic video link parameters, subtle color boost, and cinematic vignette."""
         return (
             stream
             .filter(
@@ -165,6 +165,8 @@ class Composer:
             .filter("setsar", "1")
             .filter("fps", fps=self.target_fps, round="up")
             .filter("format", "yuv420p")
+            .filter("eq", contrast=1.06, brightness=0.01, saturation=1.12)
+            .filter("vignette", angle="PI/6")
         )
 
     def normalize_clip(
@@ -172,8 +174,9 @@ class Composer:
         input_path: os.PathLike[str] | str,
         output_path: os.PathLike[str] | str,
         duration: float,
+        motion_mode: str = "zoom_in",
     ) -> Path:
-        """Loop, trim, scale, crop, and normalize one stock clip.
+        """Loop, trim, scale, crop, and normalize one stock clip with dynamic Ken Burns motion.
 
         The generated intermediate is always:
         - target_width x target_height
@@ -212,24 +215,42 @@ class Composer:
             flags="lanczos",
         )
 
-        # Apply Ken Burns Slow Zoom (100% -> 110% zoom in)
-        zoom_expr = f"1.0+0.10*(t/{duration:.3f})"
-        video = (
-            video
-            .filter(
-                "scale",
-                eval="frame",
+        # Dynamic Multi-Directional Ken Burns Camera Motion
+        dur_str = f"{duration:.3f}"
+        if motion_mode == "fast_zoom_in":
+            zoom_expr = f"1.0+0.22*(t/{dur_str})"
+            video = video.filter(
+                "scale", eval="frame",
                 w=f"ceil(iw*({zoom_expr})/2)*2",
                 h=f"ceil(ih*({zoom_expr})/2)*2",
-            )
-            .filter(
-                "crop",
-                tw,
-                th,
-                x=f"(in_w-{tw})/2",
-                y=f"(in_h-{th})/2",
-            )
-        )
+            ).filter("crop", tw, th, x=f"(in_w-{tw})/2", y=f"(in_h-{th})/2")
+        elif motion_mode == "zoom_out":
+            zoom_expr = f"1.14-0.12*(t/{dur_str})"
+            video = video.filter(
+                "scale", eval="frame",
+                w=f"ceil(iw*({zoom_expr})/2)*2",
+                h=f"ceil(ih*({zoom_expr})/2)*2",
+            ).filter("crop", tw, th, x=f"(in_w-{tw})/2", y=f"(in_h-{th})/2")
+        elif motion_mode == "pan_left":
+            video = video.filter(
+                "scale", eval="init",
+                w=f"ceil(iw*1.15/2)*2",
+                h=f"ceil(ih*1.15/2)*2",
+            ).filter("crop", tw, th, eval="frame", x=f"(in_w-{tw})*(1-t/{dur_str})", y=f"(in_h-{th})/2")
+        elif motion_mode == "pan_right":
+            video = video.filter(
+                "scale", eval="init",
+                w=f"ceil(iw*1.15/2)*2",
+                h=f"ceil(ih*1.15/2)*2",
+            ).filter("crop", tw, th, eval="frame", x=f"(in_w-{tw})*(t/{dur_str})", y=f"(in_h-{th})/2")
+        else:  # Standard Smooth Zoom In
+            zoom_expr = f"1.0+0.12*(t/{dur_str})"
+            video = video.filter(
+                "scale", eval="frame",
+                w=f"ceil(iw*({zoom_expr})/2)*2",
+                h=f"ceil(ih*({zoom_expr})/2)*2",
+            ).filter("crop", tw, th, x=f"(in_w-{tw})/2", y=f"(in_h-{th})/2")
+
         video = self._video_filters(video)
 
         output_opts = self._get_vcodec_options()
@@ -346,11 +367,20 @@ class Composer:
         normalized_a = self.normalized_dir / f"scene_{scene_id}_a.mp4"
         normalized_b = self.normalized_dir / f"scene_{scene_id}_b.mp4"
 
+        # Select dynamic camera movement for clip A and clip B
+        if scene_id == 1:
+            motion_a = "fast_zoom_in"
+            motion_b = "zoom_out"
+        else:
+            modes = ["zoom_in", "zoom_out", "pan_left", "pan_right"]
+            motion_a = modes[(scene_id * 2) % len(modes)]
+            motion_b = modes[(scene_id * 2 + 1) % len(modes)]
+
         try:
-            print(f"⚙️ Processing Scene {scene_id}: parallel clip normalization (A/B)")
+            print(f"⚙️ Processing Scene {scene_id}: parallel clip normalization (A/B - {motion_a}/{motion_b})")
             with ThreadPoolExecutor(max_workers=2) as executor:
-                fut_a = executor.submit(self.normalize_clip, path_a, normalized_a, duration_a)
-                fut_b = executor.submit(self.normalize_clip, path_b, normalized_b, duration_b)
+                fut_a = executor.submit(self.normalize_clip, path_a, normalized_a, duration_a, motion_a)
+                fut_b = executor.submit(self.normalize_clip, path_b, normalized_b, duration_b, motion_b)
                 fut_a.result()
                 fut_b.result()
 
@@ -359,6 +389,10 @@ class Composer:
             stream_a = self._prepared_video_input(input_a)
             stream_b = self._prepared_video_input(input_b)
             video_stream = ffmpeg.concat(stream_a, stream_b, v=1, a=0)
+
+            # Scene 1 Opening Flash Gimmick (0.08s subtle white flash to hook attention)
+            if scene_id == 1:
+                video_stream = video_stream.filter("fade", type="in", start_time=0, duration=0.08, color="white")
 
             ass_path = scene.get("ass_path")
             if ass_path and Path(ass_path).is_file():
