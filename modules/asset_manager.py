@@ -35,7 +35,7 @@ class AssetManager:
             "query": query,
             "per_page": 15,
             "orientation": pexels_orient,
-            "size": "medium",
+            "size": "large",
             "locale": "en-US",
         }
         try:

@@ -6,7 +6,7 @@ from mutagen.mp3 import MP3
 
 
 class AudioEngine:
-    def __init__(self, voice="en-US-AvaNeural", rate="+0%"):
+    def __init__(self, voice="en-US-AvaNeural", rate="+6%"):
         self.voice = voice
         self.rate = os.getenv("TTS_RATE") or rate
         self.output_dir = os.path.join(os.getcwd(), "assets", "audio_clips")
