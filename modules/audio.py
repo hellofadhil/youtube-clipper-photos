@@ -101,7 +101,6 @@ class AudioEngine:
             "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Encoding, MarginL, MarginR, MarginV, Alignment, Outline, Shadow\n"
             f"Style: Default,{fontname},76,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,0,90,90,560,2,6,3\n"
             f"Style: HookHeader,{fontname},56,&H0000FFFF,&H00FFFFFF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,3,0,50,50,220,8,5,3\n"
-            f"Style: SubBanner,{fontname},52,&H00FFFFFF,&H000000FF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,3,0,50,50,240,2,5,3\n"
             f"{watermark_style_line}\n"
             "[Events]\n"
             "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
@@ -131,21 +130,6 @@ class AudioEngine:
             hook_end_time = min(3.5, total_duration)
             events.append(
                 f"Dialogue: 0,0:00:00.00,{format_time(hook_end_time)},HookHeader,,0,0,0,,{{\\c&H0000FFFF&}}🔥 TOPIC: {{\\c&H00FFFFFF&}}{clean_hook}"
-            )
-
-        show_sub_banner = os.getenv("SHOW_SUBSCRIBE_BANNER", "true").lower() in ("true", "1", "yes")
-        if is_last_scene and show_sub_banner:
-            sub_start_time = max(0.5, total_duration - 3.5)
-            channel_env = os.getenv("CHANNEL_NAME", "").strip()
-            if channel_env:
-                cta_text = f"🔴 SUBSCRIBE TO {channel_env.upper()}"
-            elif category_name:
-                cta_text = f"🔴 SUBSCRIBE FOR MORE {category_name.upper()}"
-            else:
-                cta_text = "🔴 SUBSCRIBE FOR MORE DAILY CONTENT"
-
-            events.append(
-                f"Dialogue: 0,{format_time(sub_start_time)},{format_time(total_duration)},SubBanner,,0,0,0,,{{\\c&H000000FF&}}{cta_text}"
             )
 
         chunks = [
