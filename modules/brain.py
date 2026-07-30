@@ -1521,11 +1521,12 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
             if len(words1) > 15:
                 scenes[0]["text"] = " ".join(words1[:14]).rstrip(",") + "."
 
-            # Ensure final scene has engagement question or CTA
+            # Ensure final scene ends as a 100% Seamless Endless Loop open clause back to Scene 1
             final_scene = scenes[-1]
-            final_text = final_scene.get("text", "")
-            if "?" not in final_text and "subscribe" not in final_text.lower():
-                final_scene["text"] = final_text.rstrip(".") + "? Comment below and subscribe!"
+            final_text = final_scene.get("text", "").strip()
+            loop_connectors = ["reason why is", "explains why", "wonder how", "began when", "led to"]
+            if not any(conn in final_text.lower() for conn in loop_connectors):
+                final_scene["text"] = final_text.rstrip(".") + ", and the reason why is"
 
             script["scenes"] = scenes
             return script
@@ -1640,7 +1641,7 @@ Generate SEO metadata and exactly 7 fast-paced scenes following this STRICT 7-ST
 - Scene 4 [MECHANISM & PATTERN INTERRUPTER]: How it physically happened + a mid-script retention re-hook (e.g. "But the real danger began next...", "What researchers unscaled next changed everything..."). Prevents 30-second viewer drop-off!
 - Scene 5 [HUMAN & EMOTIONAL IMPACT]: Real-world human, environmental, or societal consequence. (DO NOT skip human impact; pure numbers without human context reduce emotional retention).
 - Scene 6 [PLANETARY & UNEXPECTED EFFECT]: Secondary mind-blowing consequence or unexpected revelation (axis shift, rotation change, deep space ripple, hidden secret).
-- Scene 7 [CLOSING & SEAMLESS ENDLESS LOOP]: A memorable final statement or perspective shift + a high-converting provocative engagement question. SEAMLESS LOOP REQUIREMENT: The final spoken words of Scene 7 MUST naturally and fluidly connect back into the opening phrase of Scene 1 (e.g. ending with "...and the reason why is because..." or "...which explains why..."), encouraging viewers to re-watch 1.5x-2x seamlessly! BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
+- Scene 7 / Final Scene [CLOSING & 100% SEAMLESS ENDLESS LOOP]: A memorable final statement or perspective shift ending with an open clause. SEAMLESS LOOP REQUIREMENT (STRICT): The final spoken sentence of the LAST scene MUST end open-ended without a hard period (e.g. ending with "...and the reason why is", "...which explains why", "...leaving historians to wonder how") so that it naturally, grammatically, and fluidly connects directly into the opening phrase of Scene 1 when the video loops! BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
 
 ══════════════════════════════════════════════════
 UNIVERSAL SCRIPT RULES (STRICT COMPLIANCE REQUIRED)
