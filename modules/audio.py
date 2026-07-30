@@ -129,7 +129,7 @@ class AudioEngine:
                 clean_hook = clean_hook[:40] + "..."
             hook_end_time = min(3.5, total_duration)
             events.append(
-                f"Dialogue: 0,0:00:00.00,{format_time(hook_end_time)},HookHeader,,0,0,0,,{{\\c&H0000FFFF&}}🔥 TOPIC: {{\\c&H00FFFFFF&}}{clean_hook}"
+                f"Dialogue: 0,0:00:00.00,{format_time(hook_end_time)},HookHeader,,0,0,0,,{clean_hook}"
             )
 
         chunks = [
