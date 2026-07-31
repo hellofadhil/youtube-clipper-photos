@@ -1510,7 +1510,7 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
         return script
 
     def _audit_retention_pacing(self, script: dict, topic: str, language: str = "en") -> dict:
-        """Pass 2 Audit: Verify hook strength in Scene 1 and engagement question in final scene."""
+        """Pass 2 Audit: Verify hook strength in Scene 1 and clean text formatting."""
         try:
             scenes = script.get("scenes", [])
             if not scenes:
@@ -1522,18 +1522,13 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
             if len(words1) > 16:
                 scenes[0]["text"] = " ".join(words1[:15]).rstrip(",") + "."
 
-            # Ensure final scene ends as a 100% Seamless Endless Loop open clause back to Scene 1
+            # Clean final scene ending without appending artificial hanging words
             final_scene = scenes[-1]
             final_text = final_scene.get("text", "").strip()
 
-            if str(language).lower() in ["id", "indonesian", "bahasa indonesia"]:
-                loop_connectors = ["alasannya adalah", "itulah kenapa", "semua berawal dari", "bikin orang penasaran", "yang bikin kaget"]
-                if not any(conn in final_text.lower() for conn in loop_connectors):
-                    final_scene["text"] = final_text.rstrip(".") + ", dan alasannya adalah"
-            else:
-                loop_connectors = ["reason why is", "explains why", "wonder how", "began when", "led to"]
-                if not any(conn in final_text.lower() for conn in loop_connectors):
-                    final_scene["text"] = final_text.rstrip(".") + ", and the reason why is"
+            # Clean up double quotes, trailing hanging commas or dangling "dan."
+            cleaned_final = re.sub(r"[,\s]+(dan|and)\.?$", "", final_text, flags=re.IGNORECASE).rstrip(".,;")
+            final_scene["text"] = cleaned_final
 
             script["scenes"] = scenes
             return script
@@ -1547,8 +1542,8 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
             for sc in scenes:
                 text = sc.get("text", "")
                 words = text.split()
-                if len(words) > 15:
-                    sc["text"] = " ".join(words[:14]).rstrip(",") + "."
+                if len(words) > 16:
+                    sc["text"] = " ".join(words[:15]).rstrip(",") + "."
             script["scenes"] = scenes
             return script
         except Exception:
@@ -1598,9 +1593,10 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
             lang_audit_rule = ""
             if str(language).lower() in ["id", "indonesian", "bahasa indonesia"]:
                 lang_audit_rule = (
-                    "4. INDONESIAN LANGUAGE STYLE GUARD:\n"
-                    "   - Ensure the narration text remains in ultra-natural, conversational spoken Bahasa Indonesia (gaya storytelling Shorts/TikTok).\n"
-                    "   - DO NOT change casual words to stiff, formal textbook words (DO NOT use 'oleh karena itu', 'merupakan', 'dikarenakan', 'adalah', 'suatu ketika').\n"
+                    "4. INDONESIAN LANGUAGE STYLE GUARD (10/10 VIRAL CASUAL STORYTELLING):\n"
+                    "   - Ensure the narration text remains in ultra-natural, conversational spoken Bahasa Indonesia (style Shorts/TikTok).\n"
+                    "   - DO NOT change casual words to stiff, formal textbook words (DO NOT use 'oleh karena itu', 'merupakan', 'dikarenakan', 'adalah', 'suatu ketika', 'proses biologis', 'sensor tubuh mendeteksi').\n"
+                    "   - DO NOT append dangling words like 'dan.' at the end of the last scene!\n"
                 )
 
             audit_prompt = f"""
@@ -1646,23 +1642,91 @@ Return ONLY valid JSON matching the exact schema. No markdown.
         self._last_fact_sheet = fact_sheet
         fact_block = f"\nVERIFIED FACT SHEET (STRICT COMPLIANCE):\n{fact_sheet}\n" if fact_sheet else ""
 
-        lang_instruction = ""
         if str(language).lower() in ["id", "indonesian", "bahasa indonesia"]:
-            lang_instruction = (
-                "\n══════════════════════════════════════════════════\n"
-                "INDONESIAN LANGUAGE & STYLE RULES (SANGAT IMPORTANT — JUJUR CASUAL & ASYIK):\n"
-                "1. SPOKEN NARRATION ('text'): Gunakan Bahasa Indonesia gaya lisan storytelling yang natural, asyik, dan seru seperti konten creator Shorts/TikTok terkenal di Indonesia!\n"
-                "   - GAYA BAHASA: Sangat komunikatif, dramatis, dan bikin penasaran. Gunakan frasa pemancing seperti 'Bayangin...', 'Gokilnya lagi...', 'Parahnya...', 'Tapi anehnya...', 'Bahkan...', 'Ternyata...'.\n"
-                "   - DILARANG MEMAKAI KATA BAKU KAKU / BUKU TEKS: DILARANG KERAS memakai kata-kata kaku seperti 'Oleh karena itu', 'Merupakan', 'Dikarenakan', 'Suatu ketika', 'Adalah', 'Bahwasanya', 'Sebagaimana'.\n"
-                "   - CONTOH KALIMAT YANG BAGUS (NATURAL & ENAK DIDENGAR):\n"
-                "     * Scene 1: 'Pria ini nemuin harta karun 400 juta dollar yang sengaja ditenggelamkan!'\n"
-                "     * Scene 2: 'Tahun 1909, kapal RMS Republic tenggelam di samudra Atlantik.'\n"
-                "     * Scene 3: 'Membawa 6 ton emas murni yang sampai sekarang nggak pernah ditemukan.'\n"
-                "     * Scene 4: 'Tapi pas penyelam mencoba masuk, petunjuk misterius justru bermunculan...'\n"
-                "2. SEO METADATA ('title', 'description', 'hashtags', 'tags'): Tulis dalam Bahasa Indonesia yang seru dan viral dengan 1-2 emoji.\n"
-                "3. VISUAL SEARCH QUERIES ('visual_1' and 'visual_2'): TETAP DALAM BAHASA INGGRIS (misal: 'shipwreck underwater ocean', 'gold coins treasure box') agar pencarian video di Pexels/Pixabay akurat!\n"
-                "══════════════════════════════════════════════════\n"
-            )
+            prompt = f"""
+You are an elite Indonesian YouTube Shorts Producer with millions of subscribers.
+Topic: {topic}
+{fact_block}
+
+Create a 10/10 VIRAL, HIGHLY ENGAGING, ULTRA-NATURAL Bahasa Indonesia Shorts Script.
+
+STRICT INDONESIAN STORYTELLING STYLE RULES:
+1. NO TEXTBOOK/WIKIPEDIA JARGON:
+   - NEVER use formal textbook words like "oleh karena itu", "merupakan", "dikarenakan", "suatu ketika", "adalah", "bahwasanya", "proses biologis", "sensor tubuh mendeteksi".
+   - Use warm, engaging, spoken storytelling: "Sadar nggak sih...", "Tahu nggak kenapa...", "Bayangin...", "Gokilnya lagi...", "Parahnya...", "Tapi anehnya...", "Bahkan...", "Ternyata...".
+   - If talking about pets/cats, use friendly relatable terms ("kucingmu", "anabulmu", "otak", "hawa panas").
+
+2. STRICT 10-14 WORDS PER SCENE:
+   - Fast-paced spoken narration perfect for AI voiceover.
+
+3. VISUAL QUERIES ("visual_1" and "visual_2"):
+   - MUST STAY IN ENGLISH for accurate stock footage search on Pexels (e.g. "fluffy persian cat portrait", "thick cat fur macro texture").
+
+4. FEW-SHOT SCHEMA EXAMPLE (MATCH THIS 10/10 TONE EXACTLY):
+{{
+  "metadata": {{
+    "title": "Rahasia Kenapa Bulu Kucing Menebal Di Musim Cold 🐱❄️",
+    "description": "Sadar nggak sih bulu kucingmu bisa membengkak tebal pas udara dingin? Ternyata ada benteng rahasia di balik kulit mereka. Menurutmu kucing ras pendek juga bisa setebal ini?",
+    "hashtags": "#Shorts #FaktaKucing #Anabul #KucingLucu #DidYouKnow",
+    "tags": "fakta kucing, bulu kucing tebal, anabul rahasia, edukasi kucing, kucing lucu"
+  }},
+  "scenes": [
+    {{
+      "id": 1,
+      "text": "Sadar nggak sih, bulu tebal kucingmu itu ternyata senjata rahasia bertahan hidup?",
+      "visual_1": "fluffy persian cat close up portrait",
+      "visual_2": "thick cat fur macro shot texture",
+      "mood": "shocking"
+    }},
+    {{
+      "id": 2,
+      "text": "Nenek moyang mereka dulu bertahan di padang pasir es dan musim dingin ekstrem.",
+      "visual_1": "wild cat desert environment wide",
+      "visual_2": "snow covered winter forest drone",
+      "mood": "dramatic"
+    }},
+    {{
+      "id": 3,
+      "text": "Kulit mereka punya ribuan helai dua lapis benteng bulu super rapat.",
+      "visual_1": "macro cat fur texture scientific",
+      "visual_2": "veterinarian examining cat fur layers",
+      "mood": "intense"
+    }},
+    {{
+      "id": 4,
+      "text": "Begitu suhu turun, tubuh mereka otomatis mengaktifkan mode pemanas alami!",
+      "visual_1": "cat sitting cold window winter",
+      "visual_2": "thermo vision body heat distribution",
+      "mood": "intense"
+    }},
+    {{
+      "id": 5,
+      "text": "Pemilik kucing sering kaget melihat anabul mereka mendadak berubah wujud drastis.",
+      "visual_1": "indoor domestic cat sitting window",
+      "visual_2": "person petting fluffy cat living room",
+      "mood": "warm"
+    }},
+    {{
+      "id": 6,
+      "text": "Bahkan rontoknya bulu tahunan diatur langsung oleh durasi sinar matahari harian.",
+      "visual_1": "sunlight shining through window cat",
+      "visual_2": "cat shedding fur brush grooming",
+      "mood": "mind-blowing"
+    }},
+    {{
+      "id": 7,
+      "text": "Udara hangat terperangkap di dalam bulunya menjadi selimut termal super canggih",
+      "visual_1": "cat sleeping curled up warm blanket",
+      "visual_2": "fluffy cat tail wrapping paws",
+      "mood": "reflective"
+    }}
+  ]
+}}
+
+Now generate the FULL 10/10 script for topic: "{topic}"
+Return ONLY valid JSON matching the exact schema. No markdown outside JSON.
+"""
+            return self._call_gemini(prompt, schema=EdutainmentOutput)
 
         prompt = f"""
 You are the lead scriptwriter and YouTube SEO expert for a top-tier viral Edutainment channel.
