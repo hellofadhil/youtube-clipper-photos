@@ -1,13 +1,34 @@
-import asyncio
-import os
+import re
 
 import edge_tts
 from mutagen.mp3 import MP3
 
 
+def optimize_script_text_for_tts(text: str, voice: str) -> str:
+    """Pre-process text for natural AI voiceover cadence and dramatic pauses."""
+    if not text:
+        return text
+
+    clean = re.sub(r"\s+", " ", text).strip()
+
+    if "id-ID" in voice:
+        # Enhance Indonesian dramatic storytelling pauses
+        clean = re.sub(
+            r"\b(Bayangin|Gokilnya lagi|Gokilnya|Parahnya lagi|Parahnya|Tapi anehnya|Bahkan|Ternyata|Nggak cuma itu|Dan alasannya adalah)\b(?!\s*[\.,\-\?])",
+            r"\1...",
+            clean,
+            flags=re.IGNORECASE,
+        )
+
+    return clean
+
+
 class AudioEngine:
     def __init__(self, voice="en-US-AvaNeural", rate="+6%"):
         self.voice = voice
+        # Auto-optimize rate for Indonesian voice to +12% if standard +0% is passed
+        if "id-ID" in voice and (not rate or rate == "+0%" or rate == "+4%"):
+            rate = "+12%"
         self.rate = os.getenv("TTS_RATE") or rate
         self.output_dir = os.path.join(os.getcwd(), "assets", "audio_clips")
         os.makedirs(self.output_dir, exist_ok=True)
@@ -18,9 +39,11 @@ class AudioEngine:
         ass_filename = output_filename.rsplit(".", 1)[0] + ".ass"
         ass_path = os.path.join(self.output_dir, ass_filename)
 
+        optimized_text = optimize_script_text_for_tts(text, self.voice)
+
         for attempt in range(retries):
             try:
-                communicate = edge_tts.Communicate(text, self.voice, rate=self.rate)
+                communicate = edge_tts.Communicate(optimized_text, self.voice, rate=self.rate)
                 word_boundaries = []
 
                 with open(output_path, "wb") as audio_file:

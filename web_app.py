@@ -255,6 +255,7 @@ async def render_video_step(
     table_data,
     video_format_choice="📱 Shorts Mode (9:16 Vertical - ~40s)",
     voice_choice="🇮🇩 ID - Ardi (Pria)",
+    voice_rate_choice="⚡ Energetic (+12% - Recommended for ID)",
     progress=gr.Progress(track_tqdm=True),
 ):
     """Step 3: Render voice narration, ASS subtitles, and final FFmpeg video stitch."""
@@ -329,11 +330,20 @@ async def render_video_step(
 
         bgm_mood = brain_instance.get_bgm_mood(topic)
 
+        # Parse speed rate percentage from voice_rate_choice
+        rate_code = "+12%"
+        if "(" in str(voice_rate_choice) and ")" in str(voice_rate_choice):
+            try:
+                raw_part = str(voice_rate_choice).split("(")[1].split(")")[0]
+                rate_code = raw_part.split()[0]
+            except Exception:
+                rate_code = "+12%"
+
         # 1. Process Audio & Narration
-        progress(0.3, desc="Generating AI Voice Narration & ASS Subtitles...")
+        progress(0.3, desc=f"Generating AI Voice Narration ({voice_choice} @ {rate_code})...")
         selected_voice_code = VOICE_MAPPING.get(voice_choice, "id-ID-ArdiNeural" if "ID" in str(voice_choice) else "en-US-AvaNeural")
         category_voice = os.getenv("TTS_VOICE") or selected_voice_code
-        category_rate = os.getenv("TTS_RATE") or selected_category.get("rate", "+0%")
+        category_rate = os.getenv("TTS_RATE") or rate_code
         audio_engine = AudioEngine(voice=category_voice, rate=category_rate)
         scenes = await audio_engine.process_script(
             scenes, bgm_only=is_bgm_only, title=title, category_name=selected_category.get("name", "")
@@ -610,6 +620,17 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                         value="🇮🇩 ID - Ardi (Pria)",
                         interactive=True,
                     )
+                    voice_rate_dropdown = gr.Dropdown(
+                        label="⚡ Voice Speed / Kecepatan Suara",
+                        choices=[
+                            "⚡ Energetic (+12% - Recommended for ID)",
+                            "⚡ High Speed (+16% - Fast Storytelling)",
+                            "⚡ Normal Speed (+0% - Standard)",
+                            "⚡ Gentle Speed (+6% - Recommended for EN)",
+                        ],
+                        value="⚡ Energetic (+12% - Recommended for ID)",
+                        interactive=True,
+                    )
                     video_format_radio = gr.Radio(
                         label="📐 Video Format & Duration Mode",
                         choices=[
@@ -683,14 +704,14 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
     # ── Event Callbacks ──────────────────────────────────────────────────────
     def update_voice_by_language(lang):
         if "Indonesia" in str(lang):
-            return gr.update(choices=list(VOICE_MAPPING.keys()), value="🇮🇩 ID - Ardi (Pria)")
+            return gr.update(choices=list(VOICE_MAPPING.keys()), value="🇮🇩 ID - Ardi (Pria)"), gr.update(value="⚡ Energetic (+12% - Recommended for ID)")
         else:
-            return gr.update(choices=list(VOICE_MAPPING.keys()), value="🇬🇧 EN - Ava (Wanita)")
+            return gr.update(choices=list(VOICE_MAPPING.keys()), value="🇬🇧 EN - Ava (Wanita)"), gr.update(value="⚡ Gentle Speed (+6% - Recommended for EN)")
 
     language_radio.change(
         fn=update_voice_by_language,
         inputs=[language_radio],
-        outputs=[voice_dropdown],
+        outputs=[voice_dropdown, voice_rate_dropdown],
     )
 
     gen_script_btn.click(
@@ -734,6 +755,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             scenes_dataframe,
             video_format_radio,
             voice_dropdown,
+            voice_rate_dropdown,
         ],
         outputs=[
             status_box_1,
@@ -757,6 +779,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             scenes_dataframe,
             video_format_radio,
             voice_dropdown,
+            voice_rate_dropdown,
         ],
         outputs=[
             status_box_3,
