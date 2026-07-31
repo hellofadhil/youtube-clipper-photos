@@ -1536,7 +1536,6 @@ def _sanitize_visual_queries(script: dict, category_key: str = "1", topic: str =
         return script
 
 
-class ContentBrain:
     def run_multi_pass_filter(self, script: dict, topic: str, category_key: str = "1", language: str = "en") -> dict:
         """Run 4-Pass Multi-Stage Quality Verification & Polish Pipeline."""
         if not isinstance(script, dict) or "scenes" not in script:
