@@ -1672,10 +1672,15 @@ STRICT INDONESIAN STORYTELLING RULES:
    - DILARANG MENAMBAHKAN TANDA PETIK DUA (\") DI DALAM TEKS "text".
    - DILARANG MENAMBAHKAN KATA GANTUNG DI AKHIR SCENE 7 (misal: "ya?", "kan?", "dan."). Buat Scene 7 sebagai kalimat penutup yang utuh & dramatis.
 
-4. 10-14 KATA PER SCENE (PAS UNTUK VOICE AI):
+4. ALUR VISUAL FOKUS PADA TOPIK UTAMA (COHESIVE TOPIC VISUAL FLOW — DILARANG GAMBAR LITERAL ANEH):
+   - 70% dari kata kunci visual ("visual_1" & "visual_2") HARUS fokus pada subjek utama & lingkungan utama topik (misal jika topik tentang Kucing: gunakan klip sinematik kucing, bulu kucing, kucing di jendela, kucing tidur; jika topik Ayam: gunakan klip ayam, peternakan, kandang, malam peternakan).
+   - DILARANG PENCARIAN HYPER-LITERAL JARRING: DILARANG KERAS mencari gambar objek sekunder kaku seperti "termometer", "mikroskop", "alat medis" kecuali objek tersebut memang subjek utama video.
+   - 30% sisanya adalah visual atmosfer pendukung yang menyatu (misal: "sunset village horizon", "dark forest night", "cozy blanket warm light").
+
+5. 10-14 KATA PER SCENE (PAS UNTUK VOICE AI):
    - Kalimat lisan, cepat, dan mengalir.
 
-5. FEW-SHOT SCHEMA EXAMPLE (MATCH THIS 10/10 TONE EXACTLY):
+6. FEW-SHOT SCHEMA EXAMPLE (MATCH THIS 10/10 TONE EXACTLY):
 {{
   "metadata": {{
     "title": "Alasan Ngeri Kenapa Ayam Langsung Buta Pas Malam Tiba 🐔🌙",
