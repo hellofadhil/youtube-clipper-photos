@@ -422,6 +422,45 @@ class Composer:
                 input_audio = ffmpeg.input(str(audio_path))
                 audio_stream = self._prepared_audio_input(input_audio)
 
+            # ── 10/10 Auto Sound Effects (SFX) Triggering ─────────────────────
+            # 1. Mix Mid-Scene Cut Whoosh SFX at timestamp = duration_a
+            sfx_dir = Path.cwd() / "assets" / "sfx"
+            whoosh_path = sfx_dir / "whoosh.wav"
+            if not whoosh_path.is_file():
+                self._generate_whoosh_sfx(whoosh_path)
+
+            if whoosh_path.is_file():
+                try:
+                    delay_ms = max(100, int(duration_a * 1000))
+                    whoosh_input = (
+                        ffmpeg.input(str(whoosh_path))
+                        .audio
+                        .filter("adelay", f"{delay_ms}|{delay_ms}")
+                        .filter("volume", 0.35)
+                        .filter("aresample", self.AUDIO_SAMPLE_RATE)
+                    )
+                    audio_stream = ffmpeg.filter([audio_stream, whoosh_input], "amix", inputs=2, duration="first", weights="1 0.4")
+                except Exception as sfx_err:
+                    print(f"⚠️ Whoosh SFX Mix Warning: {sfx_err}")
+
+            # 2. Mix Scene 1 Opening Sub-Bass Drop SFX for Hook Impact (t=0s)
+            if scene_id == 1:
+                bass_path = sfx_dir / "bass_drop.wav"
+                if not bass_path.is_file():
+                    self._generate_bass_drop_sfx(bass_path)
+
+                if bass_path.is_file():
+                    try:
+                        bass_input = (
+                            ffmpeg.input(str(bass_path))
+                            .audio
+                            .filter("volume", 0.45)
+                            .filter("aresample", self.AUDIO_SAMPLE_RATE)
+                        )
+                        audio_stream = ffmpeg.filter([audio_stream, bass_input], "amix", inputs=2, duration="first", weights="1 0.5")
+                    except Exception as bass_err:
+                        print(f"⚠️ Bass Drop SFX Mix Warning: {bass_err}")
+
             self._safe_unlink(output_path)
             scene_opts = self._get_vcodec_options()
             scene_opts.update({
@@ -503,6 +542,42 @@ class Composer:
                     print(f"❌ Parallel render error: {error}")
 
         return [p for p in rendered_paths if p is not None]
+
+    @staticmethod
+    def _generate_whoosh_sfx(sfx_path: Path) -> None:
+        """Synthesize a high-quality transition whoosh SFX using FFmpeg audio generator."""
+        try:
+            sfx_path.parent.mkdir(parents=True, exist_ok=True)
+            import subprocess
+            cmd = [
+                "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                "-f", "lavfi",
+                "-i", "aevalsrc=sin(2*PI*(150+2200*t)*t)*exp(-11*t)*0.35:d=0.3",
+                "-ar", "48000", "-ac", "2",
+                str(sfx_path)
+            ]
+            subprocess.run(cmd, check=True)
+            print(f"🔊 Synthesized Pro Whoosh SFX: {sfx_path.name}")
+        except Exception as error:
+            print(f"⚠️ Could not generate Whoosh SFX: {error}")
+
+    @staticmethod
+    def _generate_bass_drop_sfx(sfx_path: Path) -> None:
+        """Synthesize a cinematic sub-bass drop SFX for Scene 1 hook opening."""
+        try:
+            sfx_path.parent.mkdir(parents=True, exist_ok=True)
+            import subprocess
+            cmd = [
+                "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                "-f", "lavfi",
+                "-i", "aevalsrc=sin(2*PI*(130-95*t)*t)*exp(-3.2*t)*0.45:d=0.8",
+                "-ar", "48000", "-ac", "2",
+                str(sfx_path)
+            ]
+            subprocess.run(cmd, check=True)
+            print(f"🔊 Synthesized Hook Sub-Bass Drop SFX: {sfx_path.name}")
+        except Exception as error:
+            print(f"⚠️ Could not generate Bass Drop SFX: {error}")
 
     @staticmethod
     def _generate_default_sfx(sfx_path: Path) -> None:
