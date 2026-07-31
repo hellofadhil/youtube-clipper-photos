@@ -1379,11 +1379,11 @@ class ContentBrain:
 
         # ── 4-Pass Multi-Stage Quality Verification Pipeline ──────
         if script:
-            script = self.run_multi_pass_filter(script, topic=topic, category_key=category_key)
+            script = self.run_multi_pass_filter(script, topic=topic, category_key=category_key, language=language)
 
         return script
 
-    def generate_longform_script(self, topic: str, category_key: str = "1") -> dict:
+    def generate_longform_script(self, topic: str, category_key: str = "1", language: str = "en") -> dict:
         """Generate an 8.5-minute modular documentary script (16:9 Widescreen) with 5 structured chapters & ~100 scenes."""
         print(f"🎬 Writing 8.5-Minute Long-Form Documentary Script for: '{topic}'...")
         fact_sheet = self.verify_topic_facts(topic)
@@ -1478,10 +1478,10 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
             "scenes": all_scenes
         }
 
-        master_script = self.run_multi_pass_filter(master_script, topic=topic, category_key=category_key)
+        master_script = self.run_multi_pass_filter(master_script, topic=topic, category_key=category_key, language=language)
         return master_script
 
-    def run_multi_pass_filter(self, script: dict, topic: str, category_key: str = "1") -> dict:
+    def run_multi_pass_filter(self, script: dict, topic: str, category_key: str = "1", language: str = "en") -> dict:
         """Run 4-Pass Multi-Stage Quality Verification & Polish Pipeline."""
         if not isinstance(script, dict) or "scenes" not in script:
             return script
@@ -1492,11 +1492,11 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
 
         # Pass 1: Fact Research & Chemical/Physical Audit
         print("  🛡️ Pass 1/4: Fact & Chemical/Physical Accuracy Audit...")
-        script = self.audit_and_refine_script(script, topic=topic, fact_sheet=fact_sheet)
+        script = self.audit_and_refine_script(script, topic=topic, fact_sheet=fact_sheet, language=language)
 
         # Pass 2: Retention Architecture & Pacing Audit
         print("  🎬 Pass 2/4: Retention Architecture & Structural Pacing Audit...")
-        script = self._audit_retention_pacing(script, topic=topic)
+        script = self._audit_retention_pacing(script, topic=topic, language=language)
 
         # Pass 3: Visual & Era-Match Query Sanitizer
         print("  🖼️ Pass 3/4: Visual Query & Era-Match Sanitizer...")
@@ -1509,25 +1509,31 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
         print("  ✨ 4-Pass Quality Verification Complete (Rating: 9.8/10)!")
         return script
 
-    def _audit_retention_pacing(self, script: dict, topic: str) -> dict:
+    def _audit_retention_pacing(self, script: dict, topic: str, language: str = "en") -> dict:
         """Pass 2 Audit: Verify hook strength in Scene 1 and engagement question in final scene."""
         try:
             scenes = script.get("scenes", [])
             if not scenes:
                 return script
 
-            # Ensure Scene 1 text is concise (max 14 words) for sharp hook
+            # Ensure Scene 1 text is concise (max 15 words) for sharp hook
             scene1_text = scenes[0].get("text", "")
             words1 = scene1_text.split()
-            if len(words1) > 15:
-                scenes[0]["text"] = " ".join(words1[:14]).rstrip(",") + "."
+            if len(words1) > 16:
+                scenes[0]["text"] = " ".join(words1[:15]).rstrip(",") + "."
 
             # Ensure final scene ends as a 100% Seamless Endless Loop open clause back to Scene 1
             final_scene = scenes[-1]
             final_text = final_scene.get("text", "").strip()
-            loop_connectors = ["reason why is", "explains why", "wonder how", "began when", "led to"]
-            if not any(conn in final_text.lower() for conn in loop_connectors):
-                final_scene["text"] = final_text.rstrip(".") + ", and the reason why is"
+
+            if str(language).lower() in ["id", "indonesian", "bahasa indonesia"]:
+                loop_connectors = ["alasannya adalah", "itulah kenapa", "semua berawal dari", "bikin orang penasaran", "yang bikin kaget"]
+                if not any(conn in final_text.lower() for conn in loop_connectors):
+                    final_scene["text"] = final_text.rstrip(".") + ", dan alasannya adalah"
+            else:
+                loop_connectors = ["reason why is", "explains why", "wonder how", "began when", "led to"]
+                if not any(conn in final_text.lower() for conn in loop_connectors):
+                    final_scene["text"] = final_text.rstrip(".") + ", and the reason why is"
 
             script["scenes"] = scenes
             return script
@@ -1577,7 +1583,7 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
             print(f"  ⚠️ Fact research fallback (no web grounding): {error}")
             return ""
 
-    def audit_and_refine_script(self, script: dict, topic: str, fact_sheet: str = "") -> dict:
+    def audit_and_refine_script(self, script: dict, topic: str, fact_sheet: str = "", language: str = "en") -> dict:
         """Stage 2 Audit: Post-generation AI Fact & Quality Verifier pass for ALL categories."""
         if not isinstance(script, dict) or "scenes" not in script:
             return script
@@ -1589,6 +1595,14 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
 
         print(f"🛡️ Stage 2 Audit: Running AI Fact Filter & Verification Pass...")
         try:
+            lang_audit_rule = ""
+            if str(language).lower() in ["id", "indonesian", "bahasa indonesia"]:
+                lang_audit_rule = (
+                    "4. INDONESIAN LANGUAGE STYLE GUARD:\n"
+                    "   - Ensure the narration text remains in ultra-natural, conversational spoken Bahasa Indonesia (gaya storytelling Shorts/TikTok).\n"
+                    "   - DO NOT change casual words to stiff, formal textbook words (DO NOT use 'oleh karena itu', 'merupakan', 'dikarenakan', 'adalah', 'suatu ketika').\n"
+                )
+
             audit_prompt = f"""
 You are a senior factual auditor and chief editor for YouTube Edutainment Shorts.
 Review the following generated script for the topic: "{topic}".
@@ -1609,6 +1623,7 @@ AUDIT CRITERIA (STRICT COMPLIANCE REQUIRED):
    - Keep the shock-value hook in Scene 1 and provocative engagement question in Scene 7.
 3. METADATA:
    - Ensure title, description, and hashtags are accurate and match the revised text.
+{lang_audit_rule}
 
 If the draft script contains ANY factual, chemical, or metric errors, return a CORRECTED version matching the exact JSON schema.
 If the draft script is already 100% accurate, return it unchanged.
@@ -1635,10 +1650,17 @@ Return ONLY valid JSON matching the exact schema. No markdown.
         if str(language).lower() in ["id", "indonesian", "bahasa indonesia"]:
             lang_instruction = (
                 "\n══════════════════════════════════════════════════\n"
-                "INDONESIAN LANGUAGE REQUIREMENT (CRITICAL — STRICT COMPLIANCE):\n"
-                "1. Spoken narration ('text') MUST be written in natural, punchy, highly engaging BAHASA INDONESIA (gaya santai/gaul suitable for viral YouTube Shorts in Indonesia, WITHOUT formal stiff textbook words).\n"
-                "2. SEO Metadata ('title', 'description', 'hashtags', 'tags') MUST be written in BAHASA INDONESIA.\n"
-                "3. VISUAL SEARCH QUERIES ('visual_1' and 'visual_2') MUST STRICTLY REMAIN IN ENGLISH (e.g. 'roman colosseum aerial', 'man thinking dark room') so Pexels/Pixabay stock search works accurately!\n"
+                "INDONESIAN LANGUAGE & STYLE RULES (SANGAT IMPORTANT — JUJUR CASUAL & ASYIK):\n"
+                "1. SPOKEN NARRATION ('text'): Gunakan Bahasa Indonesia gaya lisan storytelling yang natural, asyik, dan seru seperti konten creator Shorts/TikTok terkenal di Indonesia!\n"
+                "   - GAYA BAHASA: Sangat komunikatif, dramatis, dan bikin penasaran. Gunakan frasa pemancing seperti 'Bayangin...', 'Gokilnya lagi...', 'Parahnya...', 'Tapi anehnya...', 'Bahkan...', 'Ternyata...'.\n"
+                "   - DILARANG MEMAKAI KATA BAKU KAKU / BUKU TEKS: DILARANG KERAS memakai kata-kata kaku seperti 'Oleh karena itu', 'Merupakan', 'Dikarenakan', 'Suatu ketika', 'Adalah', 'Bahwasanya', 'Sebagaimana'.\n"
+                "   - CONTOH KALIMAT YANG BAGUS (NATURAL & ENAK DIDENGAR):\n"
+                "     * Scene 1: 'Pria ini nemuin harta karun 400 juta dollar yang sengaja ditenggelamkan!'\n"
+                "     * Scene 2: 'Tahun 1909, kapal RMS Republic tenggelam di samudra Atlantik.'\n"
+                "     * Scene 3: 'Membawa 6 ton emas murni yang sampai sekarang nggak pernah ditemukan.'\n"
+                "     * Scene 4: 'Tapi pas penyelam mencoba masuk, petunjuk misterius justru bermunculan...'\n"
+                "2. SEO METADATA ('title', 'description', 'hashtags', 'tags'): Tulis dalam Bahasa Indonesia yang seru dan viral dengan 1-2 emoji.\n"
+                "3. VISUAL SEARCH QUERIES ('visual_1' and 'visual_2'): TETAP DALAM BAHASA INGGRIS (misal: 'shipwreck underwater ocean', 'gold coins treasure box') agar pencarian video di Pexels/Pixabay akurat!\n"
                 "══════════════════════════════════════════════════\n"
             )
 
