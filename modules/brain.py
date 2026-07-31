@@ -1367,13 +1367,19 @@ class ContentBrain:
     # Alias for backward compatibility
     get_location_landmarks = get_topic_anchors
 
-    def generate_script(self, topic: str, category_key: str = "1",
+    def generate_script(self, topic: str, category_key: str | dict = "1",
                         landmarks: list[str] | None = None,
                         force_mode: str | None = None,
                         language: str = "en", **kwargs):
         """Generate a full script + SEO metadata, then sanitize visual queries."""
         print(f"Writing script for: {topic} (Language: {language})...")
-        category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
+        if isinstance(category_key, dict):
+            category = category_key
+            cat_key_str = "1"
+        else:
+            cat_key_str = str(category_key)
+            category = TOPIC_CATEGORIES.get(cat_key_str, TOPIC_CATEGORIES["1"])
+
         mode = force_mode or category.get("mode", "edutainment")
         if mode == "custom":
             mode = "edutainment"  # Default for custom category if not specified
@@ -1385,7 +1391,7 @@ class ContentBrain:
 
         # ── 4-Pass Multi-Stage Quality Verification Pipeline ──────
         if script:
-            script = self.run_multi_pass_filter(script, topic=topic, category_key=category_key, language=language)
+            script = self.run_multi_pass_filter(script, topic=topic, category_key=cat_key_str, language=language)
 
         return script
 
