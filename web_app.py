@@ -139,9 +139,11 @@ def generate_script_step(
         # Format scenes for interactive Dataframe / JSON editing
         table_data = []
         for sc in scenes:
+            raw_text = str(sc.get("text", "")).replace('"', '').replace("'", "").strip()
+            sc["text"] = raw_text
             table_data.append([
                 sc.get("id", 1),
-                sc.get("text", ""),
+                raw_text,
                 sc.get("visual_1", ""),
                 sc.get("visual_2", ""),
                 sc.get("mood", "dramatic")

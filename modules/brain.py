@@ -1536,14 +1536,19 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
             return script
 
     def _audit_audio_rhythm(self, script: dict) -> dict:
-        """Pass 4 Audit: Ensure text length is strictly 10 to 14 words per scene for ideal AI voice cadence."""
+        """Pass 4 Audit: Ensure clean text, remove quotes, strip trailing weird tags."""
         try:
             scenes = script.get("scenes", [])
             for sc in scenes:
                 text = sc.get("text", "")
+                # Strip all double/single quotes from text
+                text = re.sub(r'[\"\']', '', text).strip()
+                # Strip weird trailing tags like " ya?" or " kan?"
+                text = re.sub(r'\s+(ya|kan)\?$', '.', text, flags=re.IGNORECASE)
                 words = text.split()
                 if len(words) > 16:
-                    sc["text"] = " ".join(words[:15]).rstrip(",") + "."
+                    text = " ".join(words[:15]).rstrip(",") + "."
+                sc["text"] = text
             script["scenes"] = scenes
             return script
         except Exception:
@@ -1596,7 +1601,8 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
                     "4. INDONESIAN LANGUAGE STYLE GUARD (10/10 VIRAL CASUAL STORYTELLING):\n"
                     "   - Ensure the narration text remains in ultra-natural, conversational spoken Bahasa Indonesia (style Shorts/TikTok).\n"
                     "   - DO NOT change casual words to stiff, formal textbook words (DO NOT use 'oleh karena itu', 'merupakan', 'dikarenakan', 'adalah', 'suatu ketika', 'proses biologis', 'sensor tubuh mendeteksi').\n"
-                    "   - DO NOT append dangling words like 'dan.' at the end of the last scene!\n"
+                    "   - DO NOT append dangling words like 'dan.' or forced 'ya?' at the end of the last scene!\n"
+                    "   - DO NOT wrap scene text inside double quotes!\n"
                 )
 
             audit_prompt = f"""
@@ -1644,80 +1650,87 @@ Return ONLY valid JSON matching the exact schema. No markdown.
 
         if str(language).lower() in ["id", "indonesian", "bahasa indonesia"]:
             prompt = f"""
-You are an elite Indonesian YouTube Shorts Producer with millions of subscribers.
+You are an elite Indonesian YouTube Shorts Storyteller with 5 million subscribers.
 Topic: {topic}
 {fact_block}
 
 Create a 10/10 VIRAL, HIGHLY ENGAGING, ULTRA-NATURAL Bahasa Indonesia Shorts Script.
 
-STRICT INDONESIAN STORYTELLING STYLE RULES:
-1. NO TEXTBOOK/WIKIPEDIA JARGON:
-   - NEVER use formal textbook words like "oleh karena itu", "merupakan", "dikarenakan", "suatu ketika", "adalah", "bahwasanya", "proses biologis", "sensor tubuh mendeteksi".
-   - Use warm, engaging, spoken storytelling: "Sadar nggak sih...", "Tahu nggak kenapa...", "Bayangin...", "Gokilnya lagi...", "Parahnya...", "Tapi anehnya...", "Bahkan...", "Ternyata...".
-   - If talking about pets/cats, use friendly relatable terms ("kucingmu", "anabulmu", "otak", "hawa panas").
+STRICT INDONESIAN STORYTELLING RULES:
+1. LASER-FOCUSED SINGLE STORY ARC (NO MIXING UNRELATED TOPICS):
+   - Stay 100% focused on ONE clear dramatic angle.
+   - DILARANG CAMPUR ADUK: Jangan mencampur mitos gaib, petuah orang tua, penyakit medis, dan ensiklopedia dalam satu skrip!
+   - Flow cerita harus runtut & logis: Hook Misteri -> Alasan Utama -> Efek Dramatis -> Kenapa Ini Penting -> Penutup Alami.
 
-2. STRICT 10-14 WORDS PER SCENE:
-   - Fast-paced spoken narration perfect for AI voiceover.
+2. TO-THE-POINT VIRAL HOOK (DILARANG BERBELIT-BELIT):
+   - Scene 1 HARUS langsung menyebut klaim paling mengejutkan/misterius.
+   - DILARANG PAKAI HOOK PENCERAMAHAN: Dilarang "Sadar nggak sih orang tua kita selalu ngomel kalau...", "Pernahkah kamu berpikir...".
+   - GUNAKAN HOOK LANGSUNG: "Ternyata ini alasan ngeri kenapa ayam langsung 'buta' begitu malam tiba!", "Kenapa ayam nggak boleh keluar malam? Jawabannya bikin kaget!"
 
-3. VISUAL QUERIES ("visual_1" and "visual_2"):
-   - MUST STAY IN ENGLISH for accurate stock footage search on Pexels (e.g. "fluffy persian cat portrait", "thick cat fur macro texture").
+3. DILARANG MEMAKAI KATA BAKU BUKU TEKS & KATA GANTUNG:
+   - DILARANG PAKAI: "sistem imun drop", "proses biologis", "sensor tubuh mendeteksi", "orang tua ngomel", "mitos lokal".
+   - DILARANG MENAMBAHKAN TANDA PETIK DUA (\") DI DALAM TEKS "text".
+   - DILARANG MENAMBAHKAN KATA GANTUNG DI AKHIR SCENE 7 (misal: "ya?", "kan?", "dan."). Buat Scene 7 sebagai kalimat penutup yang utuh & dramatis.
 
-4. FEW-SHOT SCHEMA EXAMPLE (MATCH THIS 10/10 TONE EXACTLY):
+4. 10-14 KATA PER SCENE (PAS UNTUK VOICE AI):
+   - Kalimat lisan, cepat, dan mengalir.
+
+5. FEW-SHOT SCHEMA EXAMPLE (MATCH THIS 10/10 TONE EXACTLY):
 {{
   "metadata": {{
-    "title": "Rahasia Kenapa Bulu Kucing Menebal Di Musim Cold 🐱❄️",
-    "description": "Sadar nggak sih bulu kucingmu bisa membengkak tebal pas udara dingin? Ternyata ada benteng rahasia di balik kulit mereka. Menurutmu kucing ras pendek juga bisa setebal ini?",
-    "hashtags": "#Shorts #FaktaKucing #Anabul #KucingLucu #DidYouKnow",
-    "tags": "fakta kucing, bulu kucing tebal, anabul rahasia, edukasi kucing, kucing lucu"
+    "title": "Alasan Ngeri Kenapa Ayam Langsung Buta Pas Malam Tiba 🐔🌙",
+    "description": "Tahu nggak kenapa ayam selalu buru-buru masuk kandang begitu matahari terbenam? Ternyata penglihatan mereka mendadak nol persen! Menurutmu gimana?",
+    "hashtags": "#Shorts #FaktaAyam #Ayam #FaktaUnik #DidYouKnow",
+    "tags": "fakta ayam, penglihatan ayam, ayam malam hari, edukasi ayam, cerita unik"
   }},
   "scenes": [
     {{
       "id": 1,
-      "text": "Sadar nggak sih, bulu tebal kucingmu itu ternyata senjata rahasia bertahan hidup?",
-      "visual_1": "fluffy persian cat close up portrait",
-      "visual_2": "thick cat fur macro shot texture",
+      "text": "Ternyata ini alasan ngeri kenapa ayam langsung buta begitu malam tiba!",
+      "visual_1": "chicken head close up dark background",
+      "visual_2": "sunset over rural farm village horizon",
       "mood": "shocking"
     }},
     {{
       "id": 2,
-      "text": "Nenek moyang mereka dulu bertahan di padang pasir es dan musim dingin ekstrem.",
-      "visual_1": "wild cat desert environment wide",
-      "visual_2": "snow covered winter forest drone",
-      "mood": "dramatic"
+      "text": "Mata ayam tidak memiliki sel khusus untuk menembus kegelapan malam.",
+      "visual_1": "rural farm village night sunset",
+      "visual_2": "farmer closing chicken coop door night",
+      "mood": "mysterious"
     }},
     {{
       "id": 3,
-      "text": "Kulit mereka punya ribuan helai dua lapis benteng bulu super rapat.",
-      "visual_1": "macro cat fur texture scientific",
-      "visual_2": "veterinarian examining cat fur layers",
+      "text": "Begitu matahari tenggelam, pandangan mereka otomatis menjadi nol persen.",
+      "visual_1": "scared chicken looking around in dark",
+      "visual_2": "dark rural landscape night view",
       "mood": "intense"
     }},
     {{
       "id": 4,
-      "text": "Begitu suhu turun, tubuh mereka otomatis mengaktifkan mode pemanas alami!",
-      "visual_1": "cat sitting cold window winter",
-      "visual_2": "thermo vision body heat distribution",
+      "text": "Di saat bersamaan, pemangsa malam seperti musang mulai keluar berburu.",
+      "visual_1": "wild ferret prowling dark forest night",
+      "visual_2": "owl watching from tree branch night",
       "mood": "intense"
     }},
     {{
       "id": 5,
-      "text": "Pemilik kucing sering kaget melihat anabul mereka mendadak berubah wujud drastis.",
-      "visual_1": "indoor domestic cat sitting window",
-      "visual_2": "person petting fluffy cat living room",
-      "mood": "warm"
+      "text": "Tanpa bisa melihat apa-apa, ayam cuma bisa pasrah diam di tempat.",
+      "visual_1": "chickens huddled together shivering cold",
+      "visual_2": "sick chicken drooping wings sad",
+      "mood": "dramatic"
     }},
     {{
       "id": 6,
-      "text": "Bahkan rontoknya bulu tahunan diatur langsung oleh durasi sinar matahari harian.",
-      "visual_1": "sunlight shining through window cat",
-      "visual_2": "cat shedding fur brush grooming",
+      "text": "Insting alamiah ini memaksa mereka harus tiba di kandang sebelum gelap.",
+      "visual_1": "sunlight shining through farm coop",
+      "visual_2": "safe chickens sleeping inside warm coop",
       "mood": "mind-blowing"
     }},
     {{
       "id": 7,
-      "text": "Udara hangat terperangkap di dalam bulunya menjadi selimut termal super canggih",
-      "visual_1": "cat sleeping curled up warm blanket",
-      "visual_2": "fluffy cat tail wrapping paws",
+      "text": "Kegelapan malam adalah musuh paling berbahaya bagi keselamatan nyawa ayam",
+      "visual_1": "sunrise over farm peaceful morning light",
+      "visual_2": "rooster crowing sunrise farm morning",
       "mood": "reflective"
     }}
   ]
