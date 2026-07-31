@@ -1294,19 +1294,25 @@ class ContentBrain:
         """Return the recommended BGM mood/subfolder name for a destination."""
         return get_bgm_mood(topic)
 
-    def get_trending_topic(self, category_key: str = "1", custom_location: str = None):
+    def get_trending_topic(self, category_key: str | dict = "1", custom_location: str = None):
         """Generate a topic based on the selected category, or use custom_location if provided."""
         if custom_location and custom_location.strip():
             topic = custom_location.strip()
             print(f"Selected Topic: {topic}")
             return topic
 
-        category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
-        angles = CATEGORY_DIVERSITY_ANGLES.get(category_key, CATEGORY_DIVERSITY_ANGLES["1"])
-        chosen_angle = random.choice(angles)
+        if isinstance(category_key, dict):
+            category = category_key
+            category_key_str = "1"
+        else:
+            category_key_str = str(category_key)
+            category = TOPIC_CATEGORIES.get(category_key_str, TOPIC_CATEGORIES["1"])
+
+        angles = CATEGORY_DIVERSITY_ANGLES.get(category_key_str, CATEGORY_DIVERSITY_ANGLES.get("1", []))
+        chosen_angle = random.choice(angles) if angles else "viral topic"
 
         prompt = (
-            f"{category['topic_prompt']}\n\n"
+            f"{category.get('topic_prompt', '')}\n\n"
             f"MANDATORY DIVERSITY FOCUS: For this generation, pick a unique, highly specific topic from this angle/domain: '{chosen_angle}'. "
             "Ensure the topic is fresh, distinct, and different from previous runs."
         )

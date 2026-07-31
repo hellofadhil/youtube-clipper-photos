@@ -481,14 +481,14 @@ async def batch_render_step(
             if i < len(user_topics):
                 topic = user_topics[i]
             else:
-                topic = brain_instance.get_trending_topic(selected_category)
+                topic = brain_instance.get_trending_topic(category_key)
 
             print(f"🎬 [Batch {current_num}/{count}] Generating script for topic: '{topic}'...")
 
             script_data = brain_instance.generate_script(
-                selected_category,
-                topic=topic,
-                force_mode=True,
+                topic,
+                category_key=category_key,
+                force_mode="edutainment",
                 language=lang_code,
             )
 
