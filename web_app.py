@@ -433,6 +433,135 @@ def sync_render_video_wrapper(*args):
     return asyncio.run(render_video_step(*args))
 
 
+async def batch_render_step(
+    batch_count_choice,
+    category_choice,
+    custom_topics_str,
+    language_choice,
+    voice_choice,
+    voice_rate_choice,
+    progress=gr.Progress(track_tqdm=True),
+):
+    """Render 4, 7, or 10 videos automatically in batch mode."""
+    try:
+        count = 4
+        if "7" in str(batch_count_choice):
+            count = 7
+        elif "10" in str(batch_count_choice):
+            count = 10
+
+        category_key = parse_category_key(category_choice)
+        selected_category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
+        cat_name = selected_category.get("name", "Topic")
+
+        user_topics = []
+        if custom_topics_str and custom_topics_str.strip():
+            user_topics = [t.strip() for t in custom_topics_str.split("\n") if t.strip()]
+
+        lang_code = "id" if "Indonesia" in str(language_choice) else "en"
+        rate_code = "+12%"
+        if "(" in str(voice_rate_choice) and ")" in str(voice_rate_choice):
+            try:
+                rate_code = str(voice_rate_choice).split("(")[1].split(")")[0].split()[0]
+            except Exception:
+                rate_code = "+12%"
+
+        selected_voice_code = VOICE_MAPPING.get(voice_choice, "id-ID-ArdiNeural" if "ID" in str(voice_choice) else "en-US-AvaNeural")
+
+        rendered_files = []
+        consolidated_metadata = []
+
+        batch_output_dir = Path.cwd() / "assets" / "final" / "batch"
+        batch_output_dir.mkdir(parents=True, exist_ok=True)
+
+        for i in range(count):
+            current_num = i + 1
+            progress((i / count), desc=f"🚀 Processing Batch Video {current_num}/{count}...")
+
+            if i < len(user_topics):
+                topic = user_topics[i]
+            else:
+                topic = brain_instance.get_trending_topic(selected_category)
+
+            print(f"🎬 [Batch {current_num}/{count}] Generating script for topic: '{topic}'...")
+
+            script_data = brain_instance.generate_script(
+                selected_category,
+                topic=topic,
+                force_mode=True,
+                language=lang_code,
+            )
+
+            if not script_data or "scenes" not in script_data:
+                continue
+
+            scenes = script_data.get("scenes", [])
+            metadata = script_data.get("metadata", {})
+            title = metadata.get("title", topic)
+            description = metadata.get("description", "")
+            hashtags = metadata.get("hashtags", "")
+
+            audio_engine = AudioEngine(voice=selected_voice_code, rate=rate_code)
+            video_pairs = []
+
+            for sc in scenes:
+                v1_url = asset_manager.search_video(sc.get("visual_1", ""), orientation="portrait")
+                v2_url = asset_manager.search_video(sc.get("visual_2", ""), exclude_url=v1_url, orientation="portrait")
+
+                fn1 = f"batch_{current_num}_sc{sc['id']}_1.mp4"
+                fn2 = f"batch_{current_num}_sc{sc['id']}_2.mp4"
+
+                p1 = asset_manager.download_video(v1_url, fn1) if v1_url else None
+                p2 = asset_manager.download_video(v2_url, fn2) if v2_url else None
+                video_pairs.append([p1, p2])
+
+            scenes = await audio_engine.process_script(scenes, bgm_only=False, title=title, category_name=cat_name)
+
+            bgm_mood = brain_instance.get_bgm_mood(topic)
+            rendered_chunks = composer_instance.render_all_scenes(scenes, video_pairs)
+
+            if not rendered_chunks:
+                continue
+
+            batch_filename = f"batch_video_{current_num}_{int(time.time())}.mp4"
+            final_path = composer_instance.stitch_chunk_files_to_master(
+                [Path(p) for p in rendered_chunks],
+                output_filename=batch_filename,
+                bgm_mood=bgm_mood,
+            )
+
+            if final_path and Path(final_path).is_file():
+                dest_path = batch_output_dir / batch_filename
+                shutil.copy(final_path, dest_path)
+                rendered_files.append(str(dest_path))
+
+                meta_text = (
+                    f"=========================================\n"
+                    f"📹 VIDEO #{current_num} | Topic: {topic}\n"
+                    f"=========================================\n"
+                    f"📌 TITLE: {title}\n\n"
+                    f"📝 DESCRIPTION:\n{description}\n\n"
+                    f"🏷️ HASHTAGS:\n{hashtags}\n"
+                    f"📁 Saved File: {dest_path}\n\n"
+                )
+                consolidated_metadata.append(meta_text)
+
+        progress(1.0, desc=f"✅ Batch rendering complete! Created {len(rendered_files)} videos.")
+
+        summary_msg = f"🎉 **Batch Rendering Selesai!** Berhasil membuat **{len(rendered_files)} dari {count} video Shorts** di folder `assets/final/batch/`!"
+        all_metadata_str = "\n".join(consolidated_metadata)
+
+        return summary_msg, rendered_files, all_metadata_str
+
+    except Exception as err:
+        return f"❌ Batch Render Error: {str(err)}", [], ""
+
+
+def sync_batch_render_wrapper(*args):
+    """Bridge Gradio sync callback to async batch render function."""
+    return asyncio.run(batch_render_step(*args))
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Gradio Studio UI Layout
 # ─────────────────────────────────────────────────────────────────────────────
@@ -703,6 +832,25 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                         autoplay=True,
                     )
 
+        # ── TAB 3: BATCH RENDER STUDIO (4, 7, 10 VIDEOS) ───────────────────
+        with gr.TabItem("📦 Batch Render Studio (4, 7, 10 Videos)"):
+            gr.Markdown("### 🚀 Batch Automation Engine")
+            gr.Markdown("*Buat 4, 7, atau 10 video Shorts sekaligus di latar belakang secara otomatis!*")
+            with gr.Row():
+                with gr.Column(scale=1):
+                    batch_count_radio = gr.Radio(
+                        label="🔢 Total Video Count / Jumlah Video",
+                        choices=["📦 4 Videos Batch", "📦 7 Videos Batch", "📦 10 Videos Batch"],
+                        value="📦 4 Videos Batch",
+                        interactive=True,
+                    )
+                    batch_topics_input = gr.TextArea(label="📍 Specific Custom Topics (Optional — 1 Topik Per Baris)", placeholder="Misal:\nKucing dan Rahasia Bulu Tebal\nKenapa Ayam Buta di Malam Hari\nMisteri Segitiga Bermuda\nSejarah Emas RMS Republic", interactive=True)
+                    batch_start_btn = gr.Button("🚀 START BATCH RENDERING NOW", variant="primary", size="lg")
+                    batch_status_box = gr.Markdown(value="*Pilih jumlah video (4/7/10) lalu klik **START BATCH RENDERING NOW**...*")
+                with gr.Column(scale=1):
+                    batch_gallery = gr.Gallery(label="🎥 Rendered Batch Video Files", columns=2, height="auto")
+                    batch_metadata_box = gr.TextArea(label="📄 Consolidated Batch SEO Metadata (Copy to YouTube)", interactive=False)
+
     # ── Event Callbacks ──────────────────────────────────────────────────────
     def update_voice_by_language(lang):
         if "Indonesia" in str(lang):
@@ -789,6 +937,23 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             metadata_output,
             tab1_video_player,
             tab1_metadata_output,
+        ],
+    )
+
+    batch_start_btn.click(
+        fn=sync_batch_render_wrapper,
+        inputs=[
+            batch_count_radio,
+            category_dropdown,
+            batch_topics_input,
+            language_radio,
+            voice_dropdown,
+            voice_rate_dropdown,
+        ],
+        outputs=[
+            batch_status_box,
+            batch_gallery,
+            batch_metadata_box,
         ],
     )
 
