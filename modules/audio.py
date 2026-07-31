@@ -33,6 +33,40 @@ class AudioEngine:
         self.output_dir = os.path.join(os.getcwd(), "assets", "audio_clips")
         os.makedirs(self.output_dir, exist_ok=True)
 
+    def generate_elevenlabs_audio(self, text: str, output_path: str, voice_id: str = "pNInz6obpgDQGcFmaJgB"):
+        """Generate 10/10 ultra-realistic human narration using ElevenLabs Multilingual v2 API."""
+        api_key = os.getenv("ELEVENLABS_API_KEY")
+        if not api_key:
+            raise RuntimeError("ELEVENLABS_API_KEY is not set.")
+
+        import json
+        import urllib.request
+
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+        headers = {
+            "Accept": "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": api_key.strip(),
+        }
+        data = {
+            "text": text,
+            "model_id": "eleven_multilingual_v2",
+            "voice_settings": {
+                "stability": 0.45,
+                "similarity_boost": 0.80,
+                "style": 0.35,
+                "use_speaker_boost": True,
+            },
+        }
+
+        req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers, method="POST")
+        with urllib.request.urlopen(req) as resp:
+            content = resp.read()
+            with open(output_path, "wb") as f:
+                f.write(content)
+
+        return output_path
+
     async def generate_audio(self, text, output_filename, retries=3):
         """Generate MP3 narration and extract word boundaries for animated captions."""
         output_path = os.path.join(self.output_dir, output_filename)
@@ -40,6 +74,17 @@ class AudioEngine:
         ass_path = os.path.join(self.output_dir, ass_filename)
 
         optimized_text = optimize_script_text_for_tts(text, self.voice)
+
+        elevenlabs_key = os.getenv("ELEVENLABS_API_KEY")
+        if elevenlabs_key and elevenlabs_key.strip():
+            try:
+                print(f"🎙️ Using ElevenLabs 10/10 Humanlike Voiceover API...")
+                # Map custom voice ID or use default Adam/Multilingual voice
+                eleven_voice_id = os.getenv("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
+                file_path = self.generate_elevenlabs_audio(optimized_text, output_path, voice_id=eleven_voice_id)
+                return file_path, [], ass_path
+            except Exception as el_err:
+                print(f"⚠️ ElevenLabs API Error ({el_err}). Falling back to Edge TTS (+12% speed)...")
 
         for attempt in range(retries):
             try:
