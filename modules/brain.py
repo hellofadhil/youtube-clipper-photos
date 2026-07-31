@@ -1363,9 +1363,10 @@ class ContentBrain:
 
     def generate_script(self, topic: str, category_key: str = "1",
                         landmarks: list[str] | None = None,
-                        force_mode: str | None = None, **kwargs):
+                        force_mode: str | None = None,
+                        language: str = "en", **kwargs):
         """Generate a full script + SEO metadata, then sanitize visual queries."""
-        print(f"Writing script for: {topic}...")
+        print(f"Writing script for: {topic} (Language: {language})...")
         category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
         mode = force_mode or category.get("mode", "edutainment")
         if mode == "custom":
@@ -1374,7 +1375,7 @@ class ContentBrain:
         if mode == "scenery":
             script = self._generate_scenery_script(topic, category, landmarks or [])
         else:
-            script = self._generate_edutainment_script(topic, category)
+            script = self._generate_edutainment_script(topic, category, language=language)
 
         # ── 4-Pass Multi-Stage Quality Verification Pipeline ──────
         if script:
@@ -1623,17 +1624,29 @@ Return ONLY valid JSON matching the exact schema. No markdown.
             print(f"  ⚠️ Stage 2 Audit fallback (retaining draft script): {error}")
             return script
 
-    def _generate_edutainment_script(self, topic: str, category: dict):
+    def _generate_edutainment_script(self, topic: str, category: dict, language: str = "en"):
         visual_guide = category.get("visual_guide", "")
         few_shot = category.get("few_shot_example", "")
         fact_sheet = self.verify_topic_facts(topic)
         self._last_fact_sheet = fact_sheet
         fact_block = f"\nVERIFIED FACT SHEET (STRICT COMPLIANCE):\n{fact_sheet}\n" if fact_sheet else ""
 
+        lang_instruction = ""
+        if str(language).lower() in ["id", "indonesian", "bahasa indonesia"]:
+            lang_instruction = (
+                "\n══════════════════════════════════════════════════\n"
+                "INDONESIAN LANGUAGE REQUIREMENT (CRITICAL — STRICT COMPLIANCE):\n"
+                "1. Spoken narration ('text') MUST be written in natural, punchy, highly engaging BAHASA INDONESIA (gaya santai/gaul suitable for viral YouTube Shorts in Indonesia, WITHOUT formal stiff textbook words).\n"
+                "2. SEO Metadata ('title', 'description', 'hashtags', 'tags') MUST be written in BAHASA INDONESIA.\n"
+                "3. VISUAL SEARCH QUERIES ('visual_1' and 'visual_2') MUST STRICTLY REMAIN IN ENGLISH (e.g. 'roman colosseum aerial', 'man thinking dark room') so Pexels/Pixabay stock search works accurately!\n"
+                "══════════════════════════════════════════════════\n"
+            )
+
         prompt = f"""
 You are the lead scriptwriter and YouTube SEO expert for a top-tier viral Edutainment channel.
 Topic: {topic}
 {fact_block}
+{lang_instruction}
 Generate SEO metadata and exactly 7 fast-paced scenes following this STRICT 7-STAGE RETENTION STRUCTURE:
 - Scene 1 [HOOK & OPEN LOOP]: Immediate brutal claim or mind-blowing consequence (0-2s) + Open Loop (2-5s). NEVER start with a date, location, or background history ("On December 26, 2004...", "In 1953..."). Reveal the most shocking consequence FIRST.
 - Scene 2 [CONTEXT / IDENTIFICATION]: Reveal the exact event, location, date, or origin story.

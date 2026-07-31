@@ -74,13 +74,30 @@ def clean_cache():
 brain_instance = ContentBrain()
 
 
-def generate_script_step(category_choice, custom_location="", audio_mode_choice="", video_format_choice="📱 Shorts Mode (9:16 Vertical - ~40s)"):
+VOICE_MAPPING = {
+    "🇮🇩 ID - Ardi (Pria)": "id-ID-ArdiNeural",
+    "🇮🇩 ID - Gadis (Wanita)": "id-ID-GadisNeural",
+    "🇬🇧 EN - Ava (Wanita)": "en-US-AvaNeural",
+    "🇬🇧 EN - Christopher (Pria)": "en-US-ChristopherNeural",
+    "🇬🇧 EN - Guy (Pria)": "en-US-GuyNeural",
+    "🇬🇧 EN - Jenny (Wanita)": "en-US-JennyNeural",
+}
+
+
+def generate_script_step(
+    category_choice,
+    custom_location="",
+    audio_mode_choice="",
+    video_format_choice="📱 Shorts Mode (9:16 Vertical - ~40s)",
+    language_choice="🇮🇩 Bahasa Indonesia",
+):
     """Step 1: Generate AI topic, script, and SEO metadata."""
     clean_cache()
     category_key = parse_category_key(category_choice)
     selected_category = TOPIC_CATEGORIES.get(category_key, TOPIC_CATEGORIES["1"])
     is_bgm_only = "BGM Only" in audio_mode_choice
     is_longform = any(k in str(video_format_choice) for k in ["Documentary", "16:9", "Long-Form", "8.5 Min"])
+    lang_code = "id" if "Indonesia" in str(language_choice) else "en"
 
     custom_loc = custom_location.strip() if custom_location and custom_location.strip() else None
 
@@ -94,7 +111,7 @@ def generate_script_step(category_choice, custom_location="", audio_mode_choice=
         bgm_mood = brain_instance.get_bgm_mood(topic)
 
         if is_longform:
-            script = brain_instance.generate_longform_script(topic, category_key=category_key)
+            script = brain_instance.generate_longform_script(topic, category_key=category_key, language=lang_code)
         else:
             landmarks = brain_instance.get_topic_anchors(topic) if is_bgm_only else []
             script = brain_instance.generate_script(
@@ -102,6 +119,7 @@ def generate_script_step(category_choice, custom_location="", audio_mode_choice=
                 category_key=category_key,
                 landmarks=landmarks if is_bgm_only else None,
                 force_mode=force_mode,
+                language=lang_code,
             )
 
         if not script:
@@ -236,6 +254,7 @@ async def render_video_step(
     scenes_json_str,
     table_data,
     video_format_choice="📱 Shorts Mode (9:16 Vertical - ~40s)",
+    voice_choice="🇮🇩 ID - Ardi (Pria)",
     progress=gr.Progress(track_tqdm=True),
 ):
     """Step 3: Render voice narration, ASS subtitles, and final FFmpeg video stitch."""
@@ -312,7 +331,8 @@ async def render_video_step(
 
         # 1. Process Audio & Narration
         progress(0.3, desc="Generating AI Voice Narration & ASS Subtitles...")
-        category_voice = os.getenv("TTS_VOICE") or selected_category.get("voice", "en-US-AvaNeural")
+        selected_voice_code = VOICE_MAPPING.get(voice_choice, "id-ID-ArdiNeural" if "ID" in str(voice_choice) else "en-US-AvaNeural")
+        category_voice = os.getenv("TTS_VOICE") or selected_voice_code
         category_rate = os.getenv("TTS_RATE") or selected_category.get("rate", "+0%")
         audio_engine = AudioEngine(voice=category_voice, rate=category_rate)
         scenes = await audio_engine.process_script(
@@ -578,6 +598,18 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                         placeholder="e.g. 'Cats & Raw Fish', 'How Black Holes Work', 'Tokyo'",
                         interactive=True,
                     )
+                    language_radio = gr.Radio(
+                        label="🌐 Script Language / Bahasa Naskah",
+                        choices=["🇮🇩 Bahasa Indonesia", "🇬🇧 English"],
+                        value="🇮🇩 Bahasa Indonesia",
+                        interactive=True,
+                    )
+                    voice_dropdown = gr.Dropdown(
+                        label="🎙️ Voiceover Speaker / Suara Narasi (TTS)",
+                        choices=list(VOICE_MAPPING.keys()),
+                        value="🇮🇩 ID - Ardi (Pria)",
+                        interactive=True,
+                    )
                     video_format_radio = gr.Radio(
                         label="📐 Video Format & Duration Mode",
                         choices=[
@@ -649,9 +681,21 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
                     )
 
     # ── Event Callbacks ──────────────────────────────────────────────────────
+    def update_voice_by_language(lang):
+        if "Indonesia" in str(lang):
+            return gr.update(choices=list(VOICE_MAPPING.keys()), value="🇮🇩 ID - Ardi (Pria)")
+        else:
+            return gr.update(choices=list(VOICE_MAPPING.keys()), value="🇬🇧 EN - Ava (Wanita)")
+
+    language_radio.change(
+        fn=update_voice_by_language,
+        inputs=[language_radio],
+        outputs=[voice_dropdown],
+    )
+
     gen_script_btn.click(
         fn=generate_script_step,
-        inputs=[category_dropdown, custom_topic_input, audio_mode_radio, video_format_radio],
+        inputs=[category_dropdown, custom_topic_input, audio_mode_radio, video_format_radio, language_radio],
         outputs=[
             status_box_1,
             topic_output,
@@ -665,7 +709,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
 
     regen_script_btn.click(
         fn=generate_script_step,
-        inputs=[category_dropdown, custom_topic_input, audio_mode_radio, video_format_radio],
+        inputs=[category_dropdown, custom_topic_input, audio_mode_radio, video_format_radio, language_radio],
         outputs=[
             status_box_1,
             topic_output,
@@ -689,6 +733,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             scenes_json_state,
             scenes_dataframe,
             video_format_radio,
+            voice_dropdown,
         ],
         outputs=[
             status_box_1,
@@ -711,6 +756,7 @@ with gr.Blocks(title="AutoShorts AI — Web Studio", css=custom_css, theme=gr.th
             scenes_json_state,
             scenes_dataframe,
             video_format_radio,
+            voice_dropdown,
         ],
         outputs=[
             status_box_3,
