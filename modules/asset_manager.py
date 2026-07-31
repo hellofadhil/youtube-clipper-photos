@@ -24,12 +24,12 @@ class AssetManager:
         os.makedirs(self.assets_dir, exist_ok=True)
 
     def search_pexels(self, query, duration_min=3, exclude_url=None, orientation="portrait"):
-        """Search Pexels API for portrait (9:16) or landscape (16:9) videos."""
+        """Search Pexels API for 1080p/4K portrait (9:16) or landscape (16:9) HD videos."""
         if not self.pexels_api_key or not query or not query.strip():
             return None
 
         pexels_orient = "landscape" if orientation in ["landscape", "horizontal"] else "portrait"
-        print(f"🔎 Searching Pexels ({pexels_orient}) for: '{query}'...")
+        print(f"🔎 Searching Pexels 1080p/4K HD ({pexels_orient}) for: '{query}'...")
         headers = {"Authorization": self.pexels_api_key}
         params = {
             "query": query,
@@ -77,7 +77,12 @@ class AssetManager:
                 if filtered:
                     candidates = filtered
 
-            selected_video = random.choice(candidates[:5])
+            # 10/10 HD Quality Tuning: Sort candidates by highest pixel resolution (width x height)
+            candidates.sort(
+                key=lambda v: (v.get("width", 0) or 0) * (v.get("height", 0) or 0),
+                reverse=True,
+            )
+            selected_video = candidates[0]
             video_files = selected_video.get("video_files", [])
             if not video_files:
                 return None
@@ -91,6 +96,33 @@ class AssetManager:
         except Exception as error:
             print(f"❌ Error searching Pexels for '{query}': {error}")
             return None
+
+    def search_pexels_photo(self, query: str, orientation: str = "portrait"):
+        """Search Pexels Photo API for 4K ultra-high resolution photography images."""
+        if not self.pexels_api_key or not query or not query.strip():
+            return None
+
+        pexels_orient = "landscape" if orientation in ["landscape", "horizontal"] else "portrait"
+        headers = {"Authorization": self.pexels_api_key}
+        params = {
+            "query": query,
+            "per_page": 10,
+            "orientation": pexels_orient,
+            "size": "large",
+        }
+        try:
+            resp = requests.get("https://api.pexels.com/v1/search", headers=headers, params=params, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                photos = data.get("photos", [])
+                if photos:
+                    photos.sort(key=lambda p: (p.get("width", 0) or 0) * (p.get("height", 0) or 0), reverse=True)
+                    best_photo = photos[0]
+                    src = best_photo.get("src", {})
+                    return src.get("large2x") or src.get("original") or src.get("large")
+        except Exception as err:
+            print(f"⚠️ Pexels Photo Search Error: {err}")
+        return None
 
     def search_pixabay(self, query, duration_min=3, exclude_url=None, orientation="portrait"):
         """Search Pixabay API for vertical/portrait or horizontal/landscape videos as fallback."""
