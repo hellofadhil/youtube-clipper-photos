@@ -1478,9 +1478,59 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
             "scenes": all_scenes
         }
 
-        master_script = self.run_multi_pass_filter(master_script, topic=topic, category_key=category_key, language=language)
-        return master_script
+def _sanitize_visual_queries(script: dict, category_key: str = "1", topic: str = "") -> dict:
+    """Pass 3 Audit: Sanitize visual search queries to enforce 85% Topic-Locked focus and ban irrelevant human faces."""
+    try:
+        scenes = script.get("scenes", [])
+        if not scenes:
+            return script
 
+        topic_lower = topic.lower()
+        subject_keyword = ""
+        if any(w in topic_lower for w in ["ayam", "chicken", "hen", "rooster", "telur", "egg"]):
+            subject_keyword = "chicken"
+        elif any(w in topic_lower for w in ["kucing", "cat", "feline", "anabul"]):
+            subject_keyword = "cat"
+        elif any(w in topic_lower for w in ["anjing", "dog"]):
+            subject_keyword = "dog"
+        elif any(w in topic_lower for w in ["harta", "emas", "shipwreck", "gold", "kapal"]):
+            subject_keyword = "shipwreck underwater"
+        elif any(w in topic_lower for w in ["space", "luar angkasa", "planet", "galaxy", "black hole"]):
+            subject_keyword = "space planet"
+        else:
+            words = [w for w in re.sub(r"[^\w\s]", "", topic_lower).split() if len(w) > 3]
+            subject_keyword = words[0] if words else ""
+
+        banned_human_words = ["face", "portrait", "person", "man", "woman", "human", "people", "smiling", "girl", "boy", "model"]
+
+        for sc in scenes:
+            for v_key in ["visual_1", "visual_2"]:
+                query = sc.get(v_key, "").strip()
+                query_lower = query.lower()
+
+                # If topic is animal/nature/space, sanitize away human face queries
+                if subject_keyword in ["chicken", "cat", "dog", "shipwreck underwater", "space planet"]:
+                    for banned in banned_human_words:
+                        if re.search(rf"\b{banned}\b", query_lower):
+                            query = re.sub(rf"\b{banned}\b", f"{subject_keyword} close up", query, flags=re.IGNORECASE)
+                            query_lower = query.lower()
+
+                # 85% Topic-Locked Enforcement: ensure core subject is present in visual query
+                if subject_keyword and subject_keyword not in query_lower:
+                    query = f"{subject_keyword} {query}"
+
+                query = re.sub(r'[\"\']', '', query)
+                query = re.sub(r"\s+", " ", query).strip()
+                sc[v_key] = query
+
+        script["scenes"] = scenes
+        return script
+    except Exception as err:
+        print(f"⚠️ Query Sanitizer Error: {err}")
+        return script
+
+
+class ContentBrain:
     def run_multi_pass_filter(self, script: dict, topic: str, category_key: str = "1", language: str = "en") -> dict:
         """Run 4-Pass Multi-Stage Quality Verification & Polish Pipeline."""
         if not isinstance(script, dict) or "scenes" not in script:
