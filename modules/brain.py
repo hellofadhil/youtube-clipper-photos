@@ -1622,9 +1622,8 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
                 text = re.sub(r'[\"\']', '', text).strip()
                 # Strip weird trailing tags like " ya?" or " kan?"
                 text = re.sub(r'\s+(ya|kan)\?$', '.', text, flags=re.IGNORECASE)
-                words = text.split()
-                if len(words) > 16:
-                    text = " ".join(words[:15]).rstrip(",") + "."
+                # Clean multiple spaces without truncating words
+                text = re.sub(r'\s+', ' ', text).strip()
                 sc["text"] = text
             script["scenes"] = scenes
             return script
@@ -1734,7 +1733,7 @@ Return ONLY valid JSON matching the exact schema. No markdown.
                 "2. DO NOT use preachy hooks ('Sadar nggak sih...', 'Pernahkah kamu berpikir...'). Use direct explosive hooks!\n"
                 "3. DO NOT wrap narration text inside double quotes (\").\n"
                 "4. Keep spoken narration fast-paced and punchy (10 to 14 words per scene).\n"
-                "5. Scene 7 MUST end as a seamless, natural endless loop connecting back to Scene 1 without trailing hanging words ('ya?', 'kan?', 'dan.')."
+                "5. Scene 7 MUST be a high-stakes, thought-provoking engagement question asking the audience's opinion (e.g. 'Kalau kamu di posisi mereka, berani nggak kamu berkunjung?', 'Menurutmu, apa yang akan kamu lakukan di situasi ini?'). Ensure it is a complete sentence ending with a question mark (?)."
             )
         elif str(language).lower() not in ["en", "english"]:
             lang_instruction = f"IMPORTANT LANGUAGE INSTRUCTION: Write ALL spoken narration ('text'), titles, descriptions, and tags strictly in {language}."
@@ -1753,7 +1752,7 @@ Generate SEO metadata and EXACTLY 7 fast-paced scenes following this STRICT 7-ST
 - Scene 4 [MECHANISM & PATTERN INTERRUPTER]: How it physically happened + a mid-script retention re-hook (e.g. "But the real danger began next...", "What researchers unscaled next changed everything..."). Prevents 30-second viewer drop-off!
 - Scene 5 [HUMAN & EMOTIONAL IMPACT]: Real-world human, environmental, or societal consequence. (DO NOT skip human impact; pure numbers without human context reduce emotional retention).
 - Scene 6 [PLANETARY & UNEXPECTED EFFECT / DEEP REVEAL]: Secondary mind-blowing consequence or unexpected revelation (axis shift, rotation change, deep space ripple, hidden secret).
-- Scene 7 / FINAL SCENE [CLOSING & CTA]: A complete, powerful final statement or provoking engagement question ending with proper punctuation (., ?). DO NOT repeat Scene 1 text! BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
+- Scene 7 / FINAL SCENE [HIGH-STAKES ENGAGEMENT QUESTION & CTA]: MANDATORY ENGAGEMENT QUESTION! Scene 7 MUST be a high-stakes, provocative question asking the viewer's opinion to explode comment section activity (e.g. "Would you ever risk visiting an island like this?", "What would you have done under those extreme circumstances?"). Ensure Scene 7 is a COMPLETE, UN-TRUNCATED 10-14 word sentence ending with a question mark (?). DO NOT cut off mid-sentence and DO NOT repeat Scene 1 text! BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing".
 
 ══════════════════════════════════════════════════
 UNIVERSAL SCRIPT RULES (STRICT COMPLIANCE REQUIRED)
