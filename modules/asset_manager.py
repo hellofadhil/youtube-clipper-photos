@@ -159,7 +159,7 @@ class AssetManager:
             valid_hits = [h for h in hits if h.get("duration", 0) >= duration_min]
             candidates = valid_hits if valid_hits else hits
 
-            selected = random.choice(candidates[:5])
+            selected = random.choice(candidates[:min(10, len(candidates))])
             video_dict = selected.get("videos", {})
 
             # Select highest quality stream (large -> medium -> small)
