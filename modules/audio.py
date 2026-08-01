@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import textwrap
 
 import edge_tts
 from mutagen.mp3 import MP3
@@ -201,11 +202,16 @@ class AudioEngine:
 
         if hook_title and hook_title.strip():
             clean_hook = hook_title.upper().strip()
-            if len(clean_hook) > 42:
-                clean_hook = clean_hook[:40] + "..."
+            # Dynamic multi-line text wrapping without truncating with '...'
+            wrapped_lines = textwrap.wrap(clean_hook, width=28)
+            clean_hook_text = "\\N".join(wrapped_lines)
+
+            # Auto font-scaling for long titles to ensure elegant fit on top banner
+            font_size_override = "{\\fs44}" if len(clean_hook) > 50 else ("{\\fs48}" if len(clean_hook) > 35 else "")
+
             hook_end_time = min(3.5, total_duration)
             events.append(
-                f"Dialogue: 0,0:00:00.00,{format_time(hook_end_time)},HookHeader,,0,0,0,,{clean_hook}"
+                f"Dialogue: 0,0:00:00.00,{format_time(hook_end_time)},HookHeader,,0,0,0,,{font_size_override}{clean_hook_text}"
             )
 
         chunks = [
