@@ -82,7 +82,9 @@ class AssetManager:
                 key=lambda v: (v.get("width", 0) or 0) * (v.get("height", 0) or 0),
                 reverse=True,
             )
-            selected_video = candidates[0]
+            # Pick randomly from the top 10 HD candidates for maximum visual variety
+            top_candidates = candidates[:min(10, len(candidates))]
+            selected_video = random.choice(top_candidates)
             video_files = selected_video.get("video_files", [])
             if not video_files:
                 return None
@@ -117,7 +119,8 @@ class AssetManager:
                 photos = data.get("photos", [])
                 if photos:
                     photos.sort(key=lambda p: (p.get("width", 0) or 0) * (p.get("height", 0) or 0), reverse=True)
-                    best_photo = photos[0]
+                    top_photos = photos[:min(5, len(photos))]
+                    best_photo = random.choice(top_photos)
                     src = best_photo.get("src", {})
                     return src.get("large2x") or src.get("original") or src.get("large")
         except Exception as err:
