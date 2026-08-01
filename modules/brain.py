@@ -1452,10 +1452,13 @@ class ContentBrain:
         self._last_fact_sheet = fact_sheet
         fact_block = f"\nVERIFIED FACT SHEET (STRICT COMPLIANCE):\n{fact_sheet}\n" if fact_sheet else ""
 
+        lang_instruction = f"IMPORTANT LANGUAGE INSTRUCTION: Write ALL spoken narration ('text'), titles, descriptions, and tags strictly in {language}." if str(language).lower() not in ["en", "english"] else ""
+
         # Step 1: Generate SEO Metadata
         meta_prompt = f"""
 You are a lead YouTube Documentary Producer. Create SEO metadata for an 8.5-minute 16:9 documentary about: "{topic}".
 {fact_block}
+{lang_instruction}
 
 Return JSON with:
 - "title": Viral 16:9 Documentary Title.
@@ -1486,6 +1489,7 @@ Return JSON with:
             act_prompt = f"""
 You are writing {chapter['name']} for an 8.5-minute YouTube documentary about: "{topic}".
 {fact_block}
+{lang_instruction}
 
 CHAPTER FOCUS: {chapter['focus']}
 
@@ -1709,6 +1713,8 @@ Return ONLY valid JSON matching the exact schema. No markdown.
         fact_sheet = self.verify_topic_facts(topic)
         self._last_fact_sheet = fact_sheet
         fact_block = f"\nVERIFIED FACT SHEET (STRICT COMPLIANCE):\n{fact_sheet}\n" if fact_sheet else ""
+
+        lang_instruction = f"IMPORTANT LANGUAGE INSTRUCTION: Write ALL spoken narration ('text'), titles, descriptions, and tags strictly in {language}." if str(language).lower() not in ["en", "english"] else ""
 
         if str(language).lower() in ["id", "indonesian", "bahasa indonesia"]:
             prompt = f"""
