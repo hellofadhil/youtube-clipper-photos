@@ -1298,6 +1298,7 @@ def _sanitize_visual_queries(script: dict, category_key: str = "1", topic: str =
 
         topic_lower = topic.lower()
         subject_keyword = ""
+        is_strict_category = True
         if any(w in topic_lower for w in ["ayam", "chicken", "hen", "rooster", "telur", "egg"]):
             subject_keyword = "chicken"
         elif any(w in topic_lower for w in ["kucing", "cat", "feline", "anabul"]):
@@ -1309,6 +1310,7 @@ def _sanitize_visual_queries(script: dict, category_key: str = "1", topic: str =
         elif any(w in topic_lower for w in ["space", "luar angkasa", "planet", "galaxy", "black hole"]):
             subject_keyword = "space planet"
         else:
+            is_strict_category = False
             words = [w for w in re.sub(r"[^\w\s]", "", topic_lower).split() if len(w) > 3]
             subject_keyword = words[0] if words else ""
 
@@ -1319,16 +1321,23 @@ def _sanitize_visual_queries(script: dict, category_key: str = "1", topic: str =
                 query = sc.get(v_key, "").strip()
                 query_lower = query.lower()
 
-                if subject_keyword in ["chicken", "cat", "dog", "shipwreck underwater", "space planet"]:
+                if is_strict_category and subject_keyword:
                     for banned in banned_human_words:
                         if re.search(rf"\b{banned}\b", query_lower):
                             query = re.sub(rf"\b{banned}\b", f"{subject_keyword} close up", query, flags=re.IGNORECASE)
                             query_lower = query.lower()
 
-                if subject_keyword and subject_keyword not in query_lower:
-                    query = f"{subject_keyword} {query}"
+                    if subject_keyword not in query_lower:
+                        query = f"{subject_keyword} {query}"
+                elif subject_keyword and not is_strict_category:
+                    # For general topics, only prepend if query is very short (< 3 words) and doesn't contain the keyword or its stem
+                    stem = subject_keyword.rstrip("s")
+                    if len(query.split()) < 3 and stem not in query_lower and subject_keyword not in query_lower:
+                        query = f"{subject_keyword} {query}"
 
                 query = re.sub(r'[\"\']', '', query)
+                # Clean up redundant repeated words like "divers scuba diver" -> "scuba diver"
+                query = re.sub(r"\bdivers\s+(?=scuba\s+diver)", "", query, flags=re.IGNORECASE)
                 query = re.sub(r"\s+", " ", query).strip()
                 sc[v_key] = query
 
