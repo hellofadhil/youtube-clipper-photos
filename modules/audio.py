@@ -201,13 +201,27 @@ class AudioEngine:
             )
 
         if hook_title and hook_title.strip():
-            clean_hook = hook_title.upper().strip()
-            # Dynamic multi-line text wrapping without truncating with '...'
-            wrapped_lines = textwrap.wrap(clean_hook, width=28)
-            clean_hook_text = "\\N".join(wrapped_lines)
+            # 1. Remove all emojis/emotes and non-text symbols
+            raw_title = hook_title.upper().strip()
+            no_emoji_title = re.sub(
+                r"[\U00010000-\U0010FFFF\u2600-\u27BF\u2300-\u23FF\u2B00-\u2BFF\u2000-\u206F]",
+                "",
+                raw_title,
+            )
+            clean_hook = re.sub(r"\s+", " ", no_emoji_title).strip()
 
-            # Auto font-scaling for long titles to ensure elegant fit on top banner
-            font_size_override = "{\\fs44}" if len(clean_hook) > 50 else ("{\\fs48}" if len(clean_hook) > 35 else "")
+            # 2. Format title into maximum 2 balanced lines
+            words = clean_hook.split()
+            if len(clean_hook) > 24 and len(words) > 1:
+                mid = max(1, len(words) // 2)
+                line1 = " ".join(words[:mid])
+                line2 = " ".join(words[mid:])
+                clean_hook_text = f"{line1}\\N{line2}"
+            else:
+                clean_hook_text = clean_hook
+
+            # 3. Dynamic font scaling for 2-line layout
+            font_size_override = "{\\fs42}" if len(clean_hook) > 48 else ("{\\fs48}" if len(clean_hook) > 32 else "")
 
             hook_end_time = min(3.5, total_duration)
             events.append(
