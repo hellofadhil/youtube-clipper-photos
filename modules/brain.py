@@ -1723,108 +1723,24 @@ Return ONLY valid JSON matching the exact schema. No markdown.
         self._last_fact_sheet = fact_sheet
         fact_block = f"\nVERIFIED FACT SHEET (STRICT COMPLIANCE):\n{fact_sheet}\n" if fact_sheet else ""
 
-        lang_instruction = f"IMPORTANT LANGUAGE INSTRUCTION: Write ALL spoken narration ('text'), titles, descriptions, and tags strictly in {language}." if str(language).lower() not in ["en", "english"] else ""
-
         if str(language).lower() in ["id", "indonesian", "bahasa indonesia"]:
-            prompt = f"""
-You are an elite Indonesian YouTube Shorts Storyteller with 5 million subscribers.
-Topic: {topic}
-{fact_block}
-
-Create a 10/10 VIRAL, HIGHLY ENGAGING, ULTRA-NATURAL Bahasa Indonesia Shorts Script.
-
-STRICT INDONESIAN STORYTELLING RULES:
-1. LASER-FOCUSED SINGLE STORY ARC (NO MIXING UNRELATED TOPICS):
-   - Stay 100% focused on ONE clear dramatic angle.
-   - DILARANG CAMPUR ADUK: Jangan mencampur mitos gaib, petuah orang tua, penyakit medis, dan ensiklopedia dalam satu skrip!
-   - Flow cerita harus runtut & logis: Hook Misteri -> Alasan Utama -> Efek Dramatis -> Kenapa Ini Penting -> Penutup Alami.
-
-2. TO-THE-POINT VIRAL HOOK (DILARANG BERBELIT-BELIT):
-   - Scene 1 HARUS langsung menyebut klaim paling mengejutkan/misterius.
-   - DILARANG PAKAI HOOK PENCERAMAHAN: Dilarang "Sadar nggak sih orang tua kita selalu ngomel kalau...", "Pernahkah kamu berpikir...".
-   - GUNAKAN HOOK LANGSUNG: "Ternyata ini alasan ngeri kenapa ayam langsung 'buta' begitu malam tiba!", "Kenapa ayam nggak boleh keluar malam? Jawabannya bikin kaget!"
-
-3. DILARANG MEMAKAI KATA BAKU BUKU TEKS & KATA GANTUNG:
-   - DILARANG PAKAI: "sistem imun drop", "proses biologis", "sensor tubuh mendeteksi", "orang tua ngomel", "mitos lokal".
-   - DILARANG MENAMBAHKAN TANDA PETIK DUA (\") DI DALAM TEKS "text".
-   - DILARANG MENAMBAHKAN KATA GANTUNG DI AKHIR SCENE 7 (misal: "ya?", "kan?", "dan."). Buat Scene 7 sebagai kalimat penutup yang utuh & dramatis.
-
-4. ALUR VISUAL FOKUS PADA TOPIK UTAMA (COHESIVE TOPIC VISUAL FLOW — DILARANG GAMBAR LITERAL ANEH):
-   - 70% dari kata kunci visual ("visual_1" & "visual_2") HARUS fokus pada subjek utama & lingkungan utama topik (misal jika topik tentang Kucing: gunakan klip sinematik kucing, bulu kucing, kucing di jendela, kucing tidur; jika topik Ayam: gunakan klip ayam, peternakan, kandang, malam peternakan).
-   - DILARANG PENCARIAN HYPER-LITERAL JARRING: DILARANG KERAS mencari gambar objek sekunder kaku seperti "termometer", "mikroskop", "alat medis" kecuali objek tersebut memang subjek utama video.
-   - 30% sisanya adalah visual atmosfer pendukung yang menyatu (misal: "sunset village horizon", "dark forest night", "cozy blanket warm light").
-
-5. 10-14 KATA PER SCENE (PAS UNTUK VOICE AI):
-   - Kalimat lisan, cepat, dan mengalir.
-
-6. FEW-SHOT SCHEMA EXAMPLE (MATCH THIS 10/10 TONE EXACTLY):
-{{
-  "metadata": {{
-    "title": "Alasan Ngeri Kenapa Ayam Langsung Buta Pas Malam Tiba 🐔🌙",
-    "description": "Tahu nggak kenapa ayam selalu buru-buru masuk kandang begitu matahari terbenam? Ternyata penglihatan mereka mendadak nol persen! Menurutmu gimana?",
-    "hashtags": "#Shorts #FaktaAyam #Ayam #FaktaUnik #DidYouKnow",
-    "tags": "fakta ayam, penglihatan ayam, ayam malam hari, edukasi ayam, cerita unik"
-  }},
-  "scenes": [
-    {{
-      "id": 1,
-      "text": "Ternyata ini alasan ngeri kenapa ayam langsung buta begitu malam tiba!",
-      "visual_1": "chicken head close up dark background",
-      "visual_2": "sunset over rural farm village horizon",
-      "mood": "shocking"
-    }},
-    {{
-      "id": 2,
-      "text": "Mata ayam tidak memiliki sel khusus untuk menembus kegelapan malam.",
-      "visual_1": "rural farm village night sunset",
-      "visual_2": "farmer closing chicken coop door night",
-      "mood": "mysterious"
-    }},
-    {{
-      "id": 3,
-      "text": "Begitu matahari tenggelam, pandangan mereka otomatis menjadi nol persen.",
-      "visual_1": "scared chicken looking around in dark",
-      "visual_2": "dark rural landscape night view",
-      "mood": "intense"
-    }},
-    {{
-      "id": 4,
-      "text": "Di saat bersamaan, pemangsa malam seperti musang mulai keluar berburu.",
-      "visual_1": "wild ferret prowling dark forest night",
-      "visual_2": "owl watching from tree branch night",
-      "mood": "intense"
-    }},
-    {{
-      "id": 5,
-      "text": "Tanpa bisa melihat apa-apa, ayam cuma bisa pasrah diam di tempat.",
-      "visual_1": "chickens huddled together shivering cold",
-      "visual_2": "sick chicken drooping wings sad",
-      "mood": "dramatic"
-    }},
-    {{
-      "id": 6,
-      "text": "Insting alamiah ini memaksa mereka harus tiba di kandang sebelum gelap.",
-      "visual_1": "sunlight shining through farm coop",
-      "visual_2": "safe chickens sleeping inside warm coop",
-      "mood": "mind-blowing"
-    }},
-    {{
-      "id": 7,
-      "text": "Kegelapan malam adalah musuh paling berbahaya bagi keselamatan nyawa ayam",
-      "visual_1": "sunrise over farm peaceful morning light",
-      "visual_2": "rooster crowing sunrise farm morning",
-      "mood": "reflective"
-    }}
-  ]
-}}
-
-Now generate the FULL 10/10 script for topic: "{topic}"
-Return ONLY valid JSON matching the exact schema. No markdown outside JSON.
-"""
-            return self._call_gemini(prompt, schema=EdutainmentOutput)
+            lang_instruction = (
+                "IMPORTANT LANGUAGE INSTRUCTION (10/10 VIRAL INDONESIAN STORYTELLING):\n"
+                "Write ALL spoken narration ('text'), titles, descriptions, and tags strictly in natural, 10/10 viral, ultra-engaging spoken Bahasa Indonesia (Shorts/TikTok style).\n"
+                "STRICT INDONESIAN RULES:\n"
+                "1. DO NOT use stiff textbook words (DO NOT use 'dikarenakan', 'proses biologis', 'sensor tubuh mendeteksi', 'oleh karena itu', 'merupakan', 'adalah').\n"
+                "2. DO NOT use preachy hooks ('Sadar nggak sih...', 'Pernahkah kamu berpikir...'). Use direct explosive hooks!\n"
+                "3. DO NOT wrap narration text inside double quotes (\").\n"
+                "4. Keep spoken narration fast-paced and punchy (10 to 14 words per scene).\n"
+                "5. Scene 7 MUST end as a seamless, natural endless loop connecting back to Scene 1 without trailing hanging words ('ya?', 'kan?', 'dan.')."
+            )
+        elif str(language).lower() not in ["en", "english"]:
+            lang_instruction = f"IMPORTANT LANGUAGE INSTRUCTION: Write ALL spoken narration ('text'), titles, descriptions, and tags strictly in {language}."
+        else:
+            lang_instruction = ""
 
         prompt = f"""
-You are the lead scriptwriter and YouTube SEO expert for a top-tier viral Edutainment channel.
+You are the lead scriptwriter and YouTube SEO expert for a top-tier 10/10 viral Edutainment channel with 5 million subscribers.
 Topic: {topic}
 {fact_block}
 {lang_instruction}
