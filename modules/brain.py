@@ -32,7 +32,7 @@ class SceneOutput(BaseModel):
 
 class EdutainmentOutput(BaseModel):
     metadata: MetadataOutput
-    scenes: list[SceneOutput] = Field(min_length=7, max_length=8)
+    scenes: list[SceneOutput] = Field(min_length=7, max_length=7)
 
 
 class ScenerySceneOutput(BaseModel):
@@ -1746,14 +1746,14 @@ You are the lead scriptwriter and YouTube SEO expert for a top-tier 10/10 viral 
 Topic: {topic}
 {fact_block}
 {lang_instruction}
-Generate SEO metadata and 7 to 8 fast-paced scenes following this STRICT 7/8-STAGE RETENTION STRUCTURE:
+Generate SEO metadata and EXACTLY 7 fast-paced scenes following this STRICT 7-STAGE RETENTION STRUCTURE:
 - Scene 1 [HOOK & OPEN LOOP]: Immediate brutal claim or mind-blowing consequence (0-2s) + Open Loop (2-5s). NEVER start with a date, location, or background history ("On December 26, 2004...", "In 1953..."). Reveal the most shocking consequence FIRST.
 - Scene 2 [CONTEXT / IDENTIFICATION]: Reveal the exact event, location, date, or origin story.
 - Scene 3 [SCALE & MEASUREMENTS]: Extreme physical scale and measurable data (distance, magnitude, speed, volume).
 - Scene 4 [MECHANISM & PATTERN INTERRUPTER]: How it physically happened + a mid-script retention re-hook (e.g. "But the real danger began next...", "What researchers unscaled next changed everything..."). Prevents 30-second viewer drop-off!
 - Scene 5 [HUMAN & EMOTIONAL IMPACT]: Real-world human, environmental, or societal consequence. (DO NOT skip human impact; pure numbers without human context reduce emotional retention).
 - Scene 6 [PLANETARY & UNEXPECTED EFFECT / DEEP REVEAL]: Secondary mind-blowing consequence or unexpected revelation (axis shift, rotation change, deep space ripple, hidden secret).
-- Scene 7 / Scene 8 [CLOSING & SEAMLESS ENDLESS LOOP]: A complete, powerful final statement or provoking CTA question that completes the thought with proper ending punctuation (., ?, !). SEAMLESS LOOP REQUIREMENT: Ensure the sentence is complete and satisfying as a standalone statement, while connecting fluidly into Scene 1 when the video loops! BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
+- Scene 7 / FINAL SCENE [CLOSING & CTA]: A complete, powerful final statement or provoking engagement question ending with proper punctuation (., ?). DO NOT repeat Scene 1 text! BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
 
 ══════════════════════════════════════════════════
 UNIVERSAL SCRIPT RULES (STRICT COMPLIANCE REQUIRED)
