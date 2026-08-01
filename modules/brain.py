@@ -1597,12 +1597,14 @@ Return JSON matching the schema with key "scenes" containing {target_count} scen
             if len(words1) > 16:
                 scenes[0]["text"] = " ".join(words1[:15]).rstrip(",") + "."
 
-            # Clean final scene ending without appending artificial hanging words
+            # Clean final scene ending without appending artificial hanging words, ensuring proper ending punctuation for TTS cadence
             final_scene = scenes[-1]
             final_text = final_scene.get("text", "").strip()
 
             # Clean up double quotes, trailing hanging commas or dangling "dan."
-            cleaned_final = re.sub(r"[,\s]+(dan|and)\.?$", "", final_text, flags=re.IGNORECASE).rstrip(".,;")
+            cleaned_final = re.sub(r"[,\s]+(dan|and)\.?$", "", final_text, flags=re.IGNORECASE).rstrip(",;")
+            if not cleaned_final.endswith((".", "?", "!")):
+                cleaned_final += "."
             final_scene["text"] = cleaned_final
 
             script["scenes"] = scenes
@@ -1744,14 +1746,14 @@ You are the lead scriptwriter and YouTube SEO expert for a top-tier 10/10 viral 
 Topic: {topic}
 {fact_block}
 {lang_instruction}
-Generate SEO metadata and exactly 7 fast-paced scenes following this STRICT 7-STAGE RETENTION STRUCTURE:
+Generate SEO metadata and 7 to 8 fast-paced scenes following this STRICT 7/8-STAGE RETENTION STRUCTURE:
 - Scene 1 [HOOK & OPEN LOOP]: Immediate brutal claim or mind-blowing consequence (0-2s) + Open Loop (2-5s). NEVER start with a date, location, or background history ("On December 26, 2004...", "In 1953..."). Reveal the most shocking consequence FIRST.
 - Scene 2 [CONTEXT / IDENTIFICATION]: Reveal the exact event, location, date, or origin story.
 - Scene 3 [SCALE & MEASUREMENTS]: Extreme physical scale and measurable data (distance, magnitude, speed, volume).
 - Scene 4 [MECHANISM & PATTERN INTERRUPTER]: How it physically happened + a mid-script retention re-hook (e.g. "But the real danger began next...", "What researchers unscaled next changed everything..."). Prevents 30-second viewer drop-off!
 - Scene 5 [HUMAN & EMOTIONAL IMPACT]: Real-world human, environmental, or societal consequence. (DO NOT skip human impact; pure numbers without human context reduce emotional retention).
-- Scene 6 [PLANETARY & UNEXPECTED EFFECT]: Secondary mind-blowing consequence or unexpected revelation (axis shift, rotation change, deep space ripple, hidden secret).
-- Scene 7 / Final Scene [CLOSING & 100% SEAMLESS ENDLESS LOOP]: A memorable final statement or perspective shift ending with an open clause. SEAMLESS LOOP REQUIREMENT (STRICT): The final spoken sentence of the LAST scene MUST end open-ended without a hard period (e.g. ending with "...and the reason why is", "...which explains why", "...leaving historians to wonder how") so that it naturally, grammatically, and fluidly connects directly into the opening phrase of Scene 1 when the video loops! BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
+- Scene 6 [PLANETARY & UNEXPECTED EFFECT / DEEP REVEAL]: Secondary mind-blowing consequence or unexpected revelation (axis shift, rotation change, deep space ripple, hidden secret).
+- Scene 7 / Scene 8 [CLOSING & SEAMLESS ENDLESS LOOP]: A complete, powerful final statement or provoking CTA question that completes the thought with proper ending punctuation (., ?, !). SEAMLESS LOOP REQUIREMENT: Ensure the sentence is complete and satisfying as a standalone statement, while connecting fluidly into Scene 1 when the video loops! BANNED CLOSINGS: "Nature is powerful", "The universe is mysterious", "Our planet is amazing", "Our home planet is constantly reshaping itself".
 
 ══════════════════════════════════════════════════
 UNIVERSAL SCRIPT RULES (STRICT COMPLIANCE REQUIRED)
